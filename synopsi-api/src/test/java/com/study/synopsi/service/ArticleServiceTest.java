@@ -2,6 +2,7 @@ package com.study.synopsi.service;
 
 import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
+import com.study.synopsi.exception.ArticleNotFoundException;
 import com.study.synopsi.mapper.ArticleMapper;
 import com.study.synopsi.model.Article;
 import com.study.synopsi.model.Feed;
@@ -132,8 +133,8 @@ class ArticleServiceTest {
             when(articleRepository.findById(99L)).thenReturn(Optional.empty());
 
             // Act & Assert
-            ArticleService.ArticleNotFoundException exception = assertThrows(
-                    ArticleService.ArticleNotFoundException.class,
+            ArticleNotFoundException exception = assertThrows(
+                    ArticleNotFoundException.class,
                     () -> articleService.getArticleById(99L)
             );
 
@@ -264,8 +265,8 @@ class ArticleServiceTest {
             when(articleRepository.findById(99L)).thenReturn(Optional.empty());
 
             // Act & Assert
-            ArticleService.ArticleNotFoundException exception = assertThrows(
-                    ArticleService.ArticleNotFoundException.class,
+            ArticleNotFoundException exception = assertThrows(
+                    ArticleNotFoundException.class,
                     () -> articleService.updateArticle(99L, updateDto)
             );
 
@@ -301,8 +302,8 @@ class ArticleServiceTest {
             when(articleRepository.existsById(99L)).thenReturn(false);
 
             // Act & Assert
-            ArticleService.ArticleNotFoundException exception = assertThrows(
-                    ArticleService.ArticleNotFoundException.class,
+            ArticleNotFoundException exception = assertThrows(
+                    ArticleNotFoundException.class,
                     () -> articleService.deleteArticle(99L)
             );
 

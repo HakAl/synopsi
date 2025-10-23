@@ -2,6 +2,7 @@ package com.study.synopsi.service;
 
 import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
+import com.study.synopsi.exception.ArticleNotFoundException;
 import com.study.synopsi.mapper.ArticleMapper;
 import com.study.synopsi.model.Article;
 import com.study.synopsi.repository.ArticleRepository;
@@ -33,7 +34,7 @@ public class ArticleService {
     @Transactional(readOnly = true)
     public ArticleResponseDto getArticleById(Long id) {
         Article article = articleRepository.findById(id)
-                .orElseThrow(() -> new ArticleNotFoundException("Article not found with id: " + id));
+                .orElseThrow(() -> new ArticleNotFoundException(id));
         return articleMapper.toDto(article);
     }
 
@@ -58,7 +59,7 @@ public class ArticleService {
     @Transactional
     public ArticleResponseDto updateArticle(Long id, ArticleRequestDto requestDto) {
         Article existingArticle = articleRepository.findById(id)
-                .orElseThrow(() -> new ArticleNotFoundException("Article not found with id: " + id));
+                .orElseThrow(() -> new ArticleNotFoundException(id));
 
         // Update only mutable fields
         articleMapper.updateEntityFromDto(requestDto, existingArticle);
@@ -74,15 +75,8 @@ public class ArticleService {
     @Transactional
     public void deleteArticle(Long id) {
         if (!articleRepository.existsById(id)) {
-            throw new ArticleNotFoundException("Article not found with id: " + id);
+            throw new ArticleNotFoundException(id);
         }
         articleRepository.deleteById(id);
-    }
-
-    // Custom exception
-    public static class ArticleNotFoundException extends RuntimeException {
-        public ArticleNotFoundException(String message) {
-            super(message);
-        }
     }
 }
