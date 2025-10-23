@@ -3,10 +3,13 @@ package com.study.synopsi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
+import com.study.synopsi.dto.PagedResponseDto;
+import com.study.synopsi.dto.filter.ArticleFilterParams;
 import com.study.synopsi.service.ArticleService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,25 +37,83 @@ public class ArticleControllerTest {
 
     @Test
     void whenGetAllArticles_thenReturnListOfArticles() throws Exception {
-        // Given: Use the builder to create the DTO instance
+        // Given: Create article DTO
         ArticleResponseDto article = ArticleResponseDto.builder()
                 .id(1L)
                 .title("Test Title")
                 .summary("Test Summary")
-                // ... add other mandatory fields with dummy data if needed
                 .build();
-        List<ArticleResponseDto> allArticles = Collections.singletonList(article);
 
-        // When
-        when(articleService.getAllArticles()).thenReturn(allArticles);
+        List<ArticleResponseDto> articles = Collections.singletonList(article);
 
-        // Then
+        // Create paginated response
+        PagedResponseDto<ArticleResponseDto> pagedResponse = new PagedResponseDto<>();
+        pagedResponse.setContent(articles);
+        pagedResponse.setPageNumber(0);
+        pagedResponse.setPageSize(20);
+        pagedResponse.setTotalElements(1L);
+        pagedResponse.setTotalPages(1);
+        pagedResponse.setFirst(true);
+        pagedResponse.setLast(true);
+        pagedResponse.setEmpty(false);
+        pagedResponse.setNumberOfElements(1);
+
+        // When: Mock the service to return paginated response
+        when(articleService.getFilteredArticles(any(ArticleFilterParams.class), any(Pageable.class)))
+                .thenReturn(pagedResponse);
+
+        // Then: Verify the response structure
         mockMvc.perform(get("/api/articles")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].title").value("Test Title"))
-                .andExpect(jsonPath("$[0].summary").value("Test Summary"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].title").value("Test Title"))
+                .andExpect(jsonPath("$.content[0].summary").value("Test Summary"))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(20))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
+    }
+
+    @Test
+    void whenGetAllArticles_withFilters_thenReturnFilteredArticles() throws Exception {
+        // Given: Create article DTO
+        ArticleResponseDto article = ArticleResponseDto.builder()
+                .id(1L)
+                .title("Filtered Title")
+                .summary("Filtered Summary")
+                .build();
+
+        List<ArticleResponseDto> articles = Collections.singletonList(article);
+
+        // Create paginated response
+        PagedResponseDto<ArticleResponseDto> pagedResponse = new PagedResponseDto<>();
+        pagedResponse.setContent(articles);
+        pagedResponse.setPageNumber(0);
+        pagedResponse.setPageSize(10);
+        pagedResponse.setTotalElements(1L);
+        pagedResponse.setTotalPages(1);
+        pagedResponse.setFirst(true);
+        pagedResponse.setLast(true);
+        pagedResponse.setEmpty(false);
+        pagedResponse.setNumberOfElements(1);
+
+        // When: Mock the service
+        when(articleService.getFilteredArticles(any(ArticleFilterParams.class), any(Pageable.class)))
+                .thenReturn(pagedResponse);
+
+        // Then: Test with query parameters
+        mockMvc.perform(get("/api/articles")
+                        .param("status", "SUMMARIZED")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.pageSize").value(10));
     }
 
     @Test
@@ -62,7 +123,6 @@ public class ArticleControllerTest {
                 .id(1L)
                 .title("Test Title")
                 .summary("Test Summary")
-                // ... add other mandatory fields here
                 .build();
 
         // When
@@ -91,7 +151,6 @@ public class ArticleControllerTest {
                 .id(1L)
                 .title("New Title")
                 .summary("New Summary")
-                // ... add other mandatory fields here
                 .build();
 
         // When
