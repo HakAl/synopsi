@@ -18,10 +18,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: synopsi-api
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,7 +37,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run tests
-        run: ./gradlew clean test
+        run: ./gradlew :synopsi-api:clean :synopsi-api:test
 
       - name: Upload test results
         if: always()
