@@ -31,6 +31,32 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle FeedNotFoundException (404)
+     */
+    @ExceptionHandler(FeedNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFeedNotFound(FeedNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
+     * Handle InvalidFeedException (400)
+     */
+    @ExceptionHandler(InvalidFeedException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidFeed(InvalidFeedException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
      * Handle validation errors from @Valid (400)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
