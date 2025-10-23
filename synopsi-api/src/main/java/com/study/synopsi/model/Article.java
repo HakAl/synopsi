@@ -35,9 +35,6 @@ public class Article {
     @Column(columnDefinition = "TEXT")
     private String content; // Full article text
 
-    @Column(columnDefinition = "TEXT")
-    private String summary; // AI-generated summary
-
     @Column(nullable = false)
     private LocalDateTime publicationDate;
 
@@ -69,9 +66,6 @@ public class Article {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column
-    private LocalDateTime summarizedAt; // When summary was generated
-
     // Foreign key relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "feed_id", nullable = false)
@@ -87,6 +81,10 @@ public class Article {
 
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserArticleFeedback> articleFeedback = new HashSet<>();
+
+    // NEW: Relationship with summaries
+    @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Summary> summaries = new HashSet<>();
 
     // Enum for article processing status
     public enum ArticleStatus {
@@ -116,6 +114,17 @@ public class Article {
     public void addArticleFeedback(UserArticleFeedback feedback) {
         articleFeedback.add(feedback);
         feedback.setArticle(this);
+    }
+
+    // NEW: Helper method for managing summaries
+    public void addSummary(Summary summary) {
+        summaries.add(summary);
+        summary.setArticle(this);
+    }
+
+    public void removeSummary(Summary summary) {
+        summaries.remove(summary);
+        summary.setArticle(null);
     }
 
     // Convenience method to get the source through feed

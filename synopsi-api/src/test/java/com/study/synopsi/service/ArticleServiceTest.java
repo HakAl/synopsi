@@ -78,7 +78,6 @@ class ArticleServiceTest {
         requestDto.setOriginalUrl("http://new.com");
         requestDto.setContent("New content.");
         requestDto.setFeedId(1L);
-        requestDto.setSummary("A summary.");
     }
 
     @Nested
@@ -222,20 +221,20 @@ class ArticleServiceTest {
         void updateArticle_ShouldSucceed() {
             // Arrange
             ArticleRequestDto updateDto = new ArticleRequestDto();
-            updateDto.setSummary("Updated summary");
             updateDto.setAuthor("Updated Author");
+            updateDto.setDescription("Updated description");
 
             Article updatedArticle = new Article();
             updatedArticle.setId(1L);
             updatedArticle.setTitle("Test Article");
-            updatedArticle.setSummary("Updated summary");
             updatedArticle.setAuthor("Updated Author");
+            updatedArticle.setDescription("Updated description");
 
             ArticleResponseDto updatedResponseDto = new ArticleResponseDto();
             updatedResponseDto.setId(1L);
             updatedResponseDto.setTitle("Test Article");
-            updatedResponseDto.setSummary("Updated summary");
             updatedResponseDto.setAuthor("Updated Author");
+            updatedResponseDto.setDescription("Updated description");
 
             when(articleRepository.findById(1L)).thenReturn(Optional.of(article));
             doNothing().when(articleMapper).updateEntityFromDto(updateDto, article);
@@ -248,8 +247,8 @@ class ArticleServiceTest {
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getSummary()).isEqualTo("Updated summary");
             assertThat(result.getAuthor()).isEqualTo("Updated Author");
+            assertThat(result.getDescription()).isEqualTo("Updated description");
 
             verify(articleRepository, times(1)).findById(1L);
             verify(articleMapper, times(1)).updateEntityFromDto(updateDto, article);
