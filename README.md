@@ -44,12 +44,5 @@ graph LR
 
 
 ## Key Features
-* **Zero-config personalization**  
-  – Implicit feedback: click-through & dwell-time automatically re-ranks feeds.
-* **Incremental summarization**  
-  – Only new paragraphs are processed; cache keyed by content-hash.
-* **Low-resource footprint**  
-  – Model < 250 MB; quantized to 8-bit; runs on CPU in < 1 s/article.
-* **Dark/Light mode** dashboard with **PWA** support—install on mobile like a native app.
 
 ---

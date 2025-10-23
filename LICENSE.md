@@ -1,4 +1,4 @@
-    <Synopsi - Personalized News & Learning Summarizer>
+    Synopsi - Personalized News & Learning Summarizer
     Copyright (C) 2025 HakAl
 
     This program is free software: you can redistribute it and/or modify
