@@ -3,6 +3,7 @@ package com.study.synopsi.controller;
 import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
 import com.study.synopsi.service.ArticleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +40,7 @@ public class ArticleController {
      * POST /api/articles - Private endpoint for Python worker to submit new articles
      */
     @PostMapping
-    public ResponseEntity<ArticleResponseDto> createArticle(@RequestBody ArticleRequestDto requestDto) {
+    public ResponseEntity<ArticleResponseDto> createArticle(@Valid @RequestBody ArticleRequestDto requestDto) {
         ArticleResponseDto createdArticle = articleService.createArticle(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdArticle);
     }

@@ -79,11 +79,12 @@ public class ArticleControllerTest {
 
     @Test
     void whenCreateArticle_withValidRequest_thenCreateArticle() throws Exception {
-        // Given: Use the builder for both request and response DTOs
+        // Given: Use the builder for both request and response DTOs with all required fields
         ArticleRequestDto requestDto = ArticleRequestDto.builder()
                 .title("New Title")
+                .originalUrl("https://example.com/article")
                 .content("New Content")
-                // ... add other mandatory fields here
+                .feedId(1L)
                 .build();
 
         ArticleResponseDto createdArticle = ArticleResponseDto.builder()

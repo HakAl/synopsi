@@ -26,6 +26,8 @@ or
 
 ```.\gradlew build --refresh-dependencies```
 
+```.\gradlew :synopsi-api:build --refresh-dependencies```
+
 -------------------
 
 ## Trouble Shoot
