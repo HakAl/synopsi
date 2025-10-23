@@ -1,4 +1,4 @@
-# Personalized News & Learning Summarizer  
+# Personalized News & Learning Summarizer
 > *Turn noisy feeds into concise, relevant briefings—automatically.*
 
 ---
