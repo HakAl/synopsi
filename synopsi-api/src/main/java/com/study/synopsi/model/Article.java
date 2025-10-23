@@ -82,7 +82,6 @@ public class Article {
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserArticleFeedback> articleFeedback = new HashSet<>();
 
-    // NEW: Relationship with summaries
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Summary> summaries = new HashSet<>();
 
@@ -116,7 +115,6 @@ public class Article {
         feedback.setArticle(this);
     }
 
-    // NEW: Helper method for managing summaries
     public void addSummary(Summary summary) {
         summaries.add(summary);
         summary.setArticle(this);
