@@ -10,7 +10,7 @@ description = "Personalized News & Learning Summarizer"
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(22)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
