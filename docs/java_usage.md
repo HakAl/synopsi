@@ -24,7 +24,7 @@ or
 
 ```.\gradlew clean bootRun```
 
-```./gradlew build --refresh-dependencies```
+```.\gradlew build --refresh-dependencies```
 
 -------------------
 
