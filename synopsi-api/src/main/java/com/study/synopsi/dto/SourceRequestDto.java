@@ -35,7 +35,7 @@ public class SourceRequestDto {
     @Size(max = 100, message = "Country must not exceed 100 characters")
     private String country;
 
-    @NotNull(message = "Source type is required")
+    // CHANGED: sourceType is now optional (removed @NotNull)
     private Source.SourceType sourceType;
 
     private Boolean isActive;

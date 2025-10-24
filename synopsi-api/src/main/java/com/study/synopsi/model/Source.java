@@ -41,8 +41,8 @@ public class Source {
     private String country; // Primary country/region
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private SourceType sourceType = SourceType.NEWS;
+    @Column(length = 50)
+    private SourceType sourceType;
 
     @Column(nullable = false)
     private Boolean isActive = true;
@@ -65,6 +65,7 @@ public class Source {
         ACADEMIC,
         MAGAZINE,
         PODCAST,
+        RSS,
         VIDEO,
         OTHER
     }
