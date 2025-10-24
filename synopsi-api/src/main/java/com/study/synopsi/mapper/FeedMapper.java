@@ -5,22 +5,36 @@ import com.study.synopsi.dto.FeedResponseDto;
 import com.study.synopsi.model.Feed;
 import com.study.synopsi.model.Source;
 import com.study.synopsi.model.Topic;
+//todo
+//import com.study.synopsi.repository.SourceRepository;
+//import com.study.synopsi.repository.TopicRepository;
 import org.mapstruct.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public interface FeedMapper {
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
+public abstract class FeedMapper {
 
+//    @Autowired
+//    protected SourceRepository sourceRepository;
+
+//    @Autowired
+//    protected TopicRepository topicRepository;
+
+    // Entity → DTO (for returning feed in responses)
     @Mapping(target = "sourceId", source = "source.id")
     @Mapping(target = "sourceName", source = "source.name")
     @Mapping(target = "topicId", source = "topic.id")
     @Mapping(target = "topicName", source = "topic.name")
     @Mapping(target = "articleCount", expression = "java(getArticleCount(feed))")
-    FeedResponseDto toDto(Feed feed);
+    public abstract FeedResponseDto toDto(Feed feed);
 
-    List<FeedResponseDto> toDtoList(List<Feed> feeds);
-
+    // DTO → Entity (for creating new feeds)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "source", source = "sourceId", qualifiedByName = "sourceIdToSource")
     @Mapping(target = "topic", source = "topicId", qualifiedByName = "topicIdToTopic")
@@ -32,8 +46,9 @@ public interface FeedMapper {
     @Mapping(target = "failureCount", constant = "0")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    Feed toEntity(FeedRequestDto dto);
+    public abstract Feed toEntity(FeedRequestDto dto);
 
+    // Update existing entity from DTO (for PATCH/PUT operations)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "source", source = "sourceId", qualifiedByName = "sourceIdToSource")
     @Mapping(target = "topic", source = "topicId", qualifiedByName = "topicIdToTopic")
@@ -45,26 +60,36 @@ public interface FeedMapper {
     @Mapping(target = "failureCount", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    void updateEntityFromDto(FeedRequestDto dto, @MappingTarget Feed feed);
+    public abstract void updateEntityFromDto(FeedRequestDto dto, @MappingTarget Feed feed);
 
-    // Custom mappings - these will need to be implemented in a separate @Component
+    // Custom mapping methods
+
     @Named("sourceIdToSource")
-    default Source sourceIdToSource(Long sourceId) {
-        if (sourceId == null) return null;
-        Source source = new Source();
-        source.setId(sourceId);
-        return source;
+    protected Source sourceIdToSource(Long sourceId) {
+        if (sourceId == null) {
+            return null;
+        }
+        return null;
+
+//        return sourceRepository.findById(sourceId)
+//                .orElseThrow(() -> new IllegalArgumentException("Source not found with id: " + sourceId));
     }
 
     @Named("topicIdToTopic")
-    default Topic topicIdToTopic(Long topicId) {
-        if (topicId == null) return null;
-        Topic topic = new Topic();
-        topic.setId(topicId);
-        return topic;
+    protected Topic topicIdToTopic(Long topicId) {
+        if (topicId == null) {
+            return null;
+        }
+        return null;
+
+//        return topicRepository.findById(topicId)
+//                .orElseThrow(() -> new IllegalArgumentException("Topic not found with id: " + topicId));
     }
 
-    default Integer getArticleCount(Feed feed) {
+    protected Integer getArticleCount(Feed feed) {
         return feed.getArticles() != null ? feed.getArticles().size() : 0;
     }
+
+    // Helper method for batch conversions
+    public abstract List<FeedResponseDto> toDtoList(List<Feed> feeds);
 }
