@@ -204,17 +204,18 @@ class AuthServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should throw exception for password reset with non-existent email")
-    void shouldThrowExceptionForPasswordResetWithNonExistentEmail() {
+    @DisplayName("Should handle password reset request for non-existent email silently")
+    void shouldHandlePasswordResetForNonExistentEmailSilently() {
         // Given
         PasswordResetRequestDto resetRequest = PasswordResetRequestDto.builder()
                 .email("nonexistent@example.com")
                 .build();
 
-        // When/Then
-        assertThatThrownBy(() -> authService.requestPasswordReset(resetRequest))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("No account found with that email");
+        // When - should complete without exception
+        authService.requestPasswordReset(resetRequest);
+
+        // Then - verify no user exists with that email
+        assertThat(userRepository.findByEmail("nonexistent@example.com")).isEmpty();
     }
 
     @Test
