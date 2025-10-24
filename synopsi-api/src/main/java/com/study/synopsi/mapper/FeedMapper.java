@@ -5,9 +5,8 @@ import com.study.synopsi.dto.FeedResponseDto;
 import com.study.synopsi.model.Feed;
 import com.study.synopsi.model.Source;
 import com.study.synopsi.model.Topic;
-//todo
-//import com.study.synopsi.repository.SourceRepository;
-//import com.study.synopsi.repository.TopicRepository;
+import com.study.synopsi.repository.SourceRepository;
+import com.study.synopsi.repository.TopicRepository;
 import org.mapstruct.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -20,11 +19,11 @@ import java.util.List;
 )
 public abstract class FeedMapper {
 
-//    @Autowired
-//    protected SourceRepository sourceRepository;
+    @Autowired
+    protected SourceRepository sourceRepository;
 
-//    @Autowired
-//    protected TopicRepository topicRepository;
+    @Autowired
+    protected TopicRepository topicRepository;
 
     // Entity → DTO (for returning feed in responses)
     @Mapping(target = "sourceId", source = "source.id")
@@ -69,10 +68,9 @@ public abstract class FeedMapper {
         if (sourceId == null) {
             return null;
         }
-        return null;
 
-//        return sourceRepository.findById(sourceId)
-//                .orElseThrow(() -> new IllegalArgumentException("Source not found with id: " + sourceId));
+        return sourceRepository.findById(sourceId)
+                .orElseThrow(() -> new IllegalArgumentException("Source not found with id: " + sourceId));
     }
 
     @Named("topicIdToTopic")
@@ -80,10 +78,9 @@ public abstract class FeedMapper {
         if (topicId == null) {
             return null;
         }
-        return null;
 
-//        return topicRepository.findById(topicId)
-//                .orElseThrow(() -> new IllegalArgumentException("Topic not found with id: " + topicId));
+        return topicRepository.findById(topicId)
+                .orElseThrow(() -> new IllegalArgumentException("Topic not found with id: " + topicId));
     }
 
     protected Integer getArticleCount(Feed feed) {

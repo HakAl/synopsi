@@ -44,10 +44,49 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle SourceNotFoundException (404)
+     */
+    @ExceptionHandler(SourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleSourceNotFound(SourceNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
+     * Handle TopicNotFoundException (404)
+     */
+    @ExceptionHandler(TopicNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTopicNotFound(TopicNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
      * Handle InvalidFeedException (400)
      */
     @ExceptionHandler(InvalidFeedException.class)
     public ResponseEntity<ErrorResponse> handleInvalidFeed(InvalidFeedException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
+     * Handle InvalidTopicHierarchyException (400)
+     */
+    @ExceptionHandler(InvalidTopicHierarchyException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTopicHierarchy(InvalidTopicHierarchyException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
