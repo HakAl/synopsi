@@ -60,9 +60,7 @@ public class FeedService {
 
     /**
      * Get all feeds (for backward compatibility)
-     * @deprecated Use getFilteredFeeds with null filters instead
      */
-    @Deprecated
     @Transactional(readOnly = true)
     public List<FeedResponseDto> getAllFeeds() {
         log.debug("Getting all feeds");
@@ -358,7 +356,7 @@ public class FeedService {
      */
     private boolean isValidUrl(String url) {
         try {
-            new java.net.URL(url);
+            new java.net.URI(url);
             return url.startsWith("http://") || url.startsWith("https://");
         } catch (Exception e) {
             return false;

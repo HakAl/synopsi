@@ -22,14 +22,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.mapstruct:mapstruct:${mapstructVersion}")
-    annotationProcessor("org.mapstruct:mapstruct-processor:${mapstructVersion}")
     compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
     runtimeOnly("com.h2database:h2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    annotationProcessor("org.mapstruct:mapstruct-processor:${mapstructVersion}")
 }
 
 tasks.withType<Test> {
@@ -38,4 +39,12 @@ tasks.withType<Test> {
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     sourceResources(sourceSets["main"])
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf(
+        "-Xlint:all",           // Enable all warnings
+        "-Xlint:-processing",   // Disable annotation processing warnings (noisy)
+//        "-Werror"               // Treat warnings as errors (strict mode)
+    ))
 }

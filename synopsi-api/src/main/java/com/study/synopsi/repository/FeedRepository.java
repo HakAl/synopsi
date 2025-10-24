@@ -27,9 +27,9 @@ public interface FeedRepository extends JpaRepository<Feed, Long>, JpaSpecificat
     // Query for feeds that need crawling
     // Returns feeds where: isActive = true AND (lastCrawled is null OR lastCrawled + crawlFrequencyMinutes <= now)
     @Query("""
-        SELECT f FROM Feed f 
-        WHERE f.isActive = true 
-        AND (f.lastCrawled IS NULL 
+        SELECT f FROM Feed f
+        WHERE f.isActive = true
+        AND (f.lastCrawled IS NULL
             OR FUNCTION('TIMESTAMPADD', MINUTE, f.crawlFrequencyMinutes, f.lastCrawled) <= :now)
         ORDER BY f.priority DESC, f.lastCrawled ASC NULLS FIRST
         """)

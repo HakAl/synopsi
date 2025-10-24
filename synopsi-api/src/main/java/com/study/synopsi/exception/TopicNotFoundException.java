@@ -1,6 +1,10 @@
 package com.study.synopsi.exception;
 
+import java.io.Serial;
+
 public class TopicNotFoundException extends RuntimeException {
+    @Serial
+    private static final long serialVersionUID = 1L;
     
     public TopicNotFoundException(Long id) {
         super("Topic not found with id: " + id);

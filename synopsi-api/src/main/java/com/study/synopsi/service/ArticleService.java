@@ -50,9 +50,7 @@ public class ArticleService {
 
     /**
      * Get all articles (for backward compatibility - delegates to filtered method)
-     * @deprecated Use getFilteredArticles with null filters instead
      */
-    @Deprecated
     @Transactional(readOnly = true)
     public List<ArticleResponseDto> getAllArticles() {
         List<Article> articles = articleRepository.findAll();

@@ -131,7 +131,6 @@ public class FeedController {
      * Get all feeds (deprecated - use GET /api/feeds instead)
      * GET /api/feeds/all
      */
-    @Deprecated
     @GetMapping("/all")
     public ResponseEntity<List<FeedResponseDto>> getAllFeeds() {
         log.info("GET /api/feeds/all (deprecated)");
