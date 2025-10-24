@@ -3,7 +3,6 @@ package com.study.synopsi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.study.synopsi.config.JwtAuthenticationFilter;
 import com.study.synopsi.config.JwtUtil;
-import com.study.synopsi.config.TestSecurityConfig;
 import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
 import com.study.synopsi.dto.PagedResponseDto;
