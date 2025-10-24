@@ -24,9 +24,13 @@ or
 
 ```.\gradlew clean bootRun```
 
+### Update dependencies
+
 ```.\gradlew build --refresh-dependencies```
 
 ```.\gradlew :synopsi-api:build --refresh-dependencies```
+
+### Run tests
 
 ```.\gradlew test```
 
