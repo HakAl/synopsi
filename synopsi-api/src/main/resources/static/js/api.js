@@ -1,80 +1,363 @@
-// API client stub - will be implemented with real endpoints in next step
-const API_BASE_URL = '/api';
+// API Configuration
+const API_BASE_URL = 'http://localhost:8080';
+const TOKEN_KEY = 'synopsi_jwt_token';
+const USER_KEY = 'synopsi_user';
 
-const api = {
-    // Auth
-    login: async (email, password) => {
-        console.log('API: login', email);
-        return { token: 'mock-jwt-token' };
+// Token Management
+const tokenManager = {
+    setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
+    getToken: () => localStorage.getItem(TOKEN_KEY),
+    removeToken: () => localStorage.removeItem(TOKEN_KEY),
+
+    setUser: (user) => localStorage.setItem(USER_KEY, JSON.stringify(user)),
+    getUser: () => {
+        const user = localStorage.getItem(USER_KEY);
+        return user ? JSON.parse(user) : null;
     },
+    removeUser: () => localStorage.removeItem(USER_KEY),
 
-    register: async (email, password) => {
-        console.log('API: register', email);
-        return { success: true };
-    },
-
-    // Feeds
-    getPersonalizedFeed: async () => {
-        console.log('API: getPersonalizedFeed');
-        return mockSummaries;
-    },
-
-    // Topics
-    getAllTopics: async () => {
-        console.log('API: getAllTopics');
-        return mockTopics;
-    },
-
-    // Sources
-    getAllSources: async () => {
-        console.log('API: getAllSources');
-        return mockSources;
-    },
-
-    createSource: async (name, url) => {
-        console.log('API: createSource', name, url);
-        return { id: Date.now(), name, url };
-    },
-
-    deleteSource: async (id) => {
-        console.log('API: deleteSource', id);
-        return { success: true };
+    clear: () => {
+        tokenManager.removeToken();
+        tokenManager.removeUser();
     }
 };
 
-// Mock data for UI development
-const mockTopics = [
-    { id: 1, name: 'Technology', slug: 'technology' },
-    { id: 2, name: 'Science', slug: 'science' },
-    { id: 3, name: 'Business', slug: 'business' },
-    { id: 4, name: 'Health', slug: 'health' },
-    { id: 5, name: 'Politics', slug: 'politics' }
-];
-
-const mockSources = [
-    { id: 1, name: 'TechCrunch', url: 'https://techcrunch.com/feed/' },
-    { id: 2, name: 'Hacker News', url: 'https://news.ycombinator.com/rss' }
-];
-
-const mockSummaries = [
-    {
-        id: 1,
-        title: 'New AI Model Breaks Performance Records',
-        source: 'TechCrunch',
-        publishedAt: '2025-10-24T10:30:00Z',
-        preview: 'A groundbreaking AI model has achieved unprecedented results in natural language understanding...',
-        summary: 'Researchers have developed a new AI model that significantly outperforms previous benchmarks in natural language understanding tasks. The model uses a novel architecture that combines transformer-based attention mechanisms with advanced memory systems.',
-        url: 'https://example.com/article/1',
-        topics: ['Technology', 'AI']
-    },
-    {
-        id: 2,
-        title: 'Climate Study Reveals New Insights',
-        source: 'Science Daily',
-        publishedAt: '2025-10-24T08:15:00Z',
-        preview: 'New research into climate patterns suggests more rapid changes than previously predicted...',
-        summary: 'A comprehensive climate study spanning 20 years has revealed that certain environmental changes are occurring more rapidly than earlier models predicted. Scientists are calling for updated climate action strategies.',
-        url: 'https://example.com/article/2',
-        topics: ['Science', 'Environment']
+// Parse JWT to extract userId
+const parseJwt = (token) => {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
     }
-];
+};
+
+// HTTP Client with automatic token injection
+const httpClient = async (url, options = {}) => {
+    const token = tokenManager.getToken();
+
+    const config = {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        },
+    };
+
+    // Add Authorization header if token exists and not a public endpoint
+    if (token && !url.includes('/api/auth/')) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${url}`, config);
+
+        // Handle 401 - token expired or invalid
+        if (response.status === 401) {
+            tokenManager.clear();
+            window.location.href = '/index.html';
+            throw new Error('Session expired. Please login again.');
+        }
+
+        // Handle other error status codes
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw {
+                status: response.status,
+                message: errorData.message || errorData.errorMessage || `HTTP ${response.status}`,
+                data: errorData
+            };
+        }
+
+        // Handle 204 No Content
+        if (response.status === 204) {
+            return null;
+        }
+
+        return await response.json();
+    } catch (error) {
+        // Network errors or other fetch failures
+        if (!error.status) {
+            throw {
+                status: 0,
+                message: 'Network error. Please check your connection.',
+                data: error
+            };
+        }
+        throw error;
+    }
+};
+
+// API Methods
+const api = {
+    // ==================== Auth ====================
+    login: async (usernameOrEmail, password) => {
+        const response = await httpClient('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ usernameOrEmail, password })
+        });
+
+        // Store token and user info
+        tokenManager.setToken(response.token);
+        const payload = parseJwt(response.token);
+        tokenManager.setUser({
+            id: payload.userId,
+            username: payload.sub
+        });
+
+        return response;
+    },
+
+    register: async (username, email, password) => {
+        const response = await httpClient('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({ username, email, password })
+        });
+
+        // Store token and user info
+        tokenManager.setToken(response.token);
+        const payload = parseJwt(response.token);
+        tokenManager.setUser({
+            id: payload.userId,
+            username: payload.sub
+        });
+
+        return response;
+    },
+
+    logout: () => {
+        tokenManager.clear();
+        window.location.href = '/index.html';
+    },
+
+    requestPasswordReset: async (email) => {
+        return await httpClient('/api/auth/password-reset', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+    },
+
+    confirmPasswordReset: async (token, newPassword) => {
+        return await httpClient('/api/auth/password-reset/confirm', {
+            method: 'POST',
+            body: JSON.stringify({ token, newPassword })
+        });
+    },
+
+    // ==================== Topics ====================
+    getAllTopics: async (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await httpClient(`/api/topics${query ? '?' + query : ''}`);
+    },
+
+    getTopicById: async (id, includeChildren = false) => {
+        return await httpClient(`/api/topics/${id}?includeChildren=${includeChildren}`);
+    },
+
+    getTopicBySlug: async (slug) => {
+        return await httpClient(`/api/topics/by-slug/${slug}`);
+    },
+
+    getRootTopics: async (includeChildren = false) => {
+        return await httpClient(`/api/topics/root?includeChildren=${includeChildren}`);
+    },
+
+    getChildTopics: async (parentId) => {
+        return await httpClient(`/api/topics/${parentId}/children`);
+    },
+
+    createTopic: async (topicData) => {
+        return await httpClient('/api/topics', {
+            method: 'POST',
+            body: JSON.stringify(topicData)
+        });
+    },
+
+    updateTopic: async (id, topicData) => {
+        return await httpClient(`/api/topics/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(topicData)
+        });
+    },
+
+    deleteTopic: async (id) => {
+        return await httpClient(`/api/topics/${id}`, {
+            method: 'DELETE'
+        });
+    },
+
+    // ==================== Sources ====================
+    getAllSources: async (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await httpClient(`/api/sources${query ? '?' + query : ''}`);
+    },
+
+    getSourceById: async (id) => {
+        return await httpClient(`/api/sources/${id}`);
+    },
+
+    getSourceByIdWithFeeds: async (id) => {
+        return await httpClient(`/api/sources/${id}/with-feeds`);
+    },
+
+    getSourceByName: async (name) => {
+        return await httpClient(`/api/sources/by-name/${name}`);
+    },
+
+    createSource: async (sourceData) => {
+        return await httpClient('/api/sources', {
+            method: 'POST',
+            body: JSON.stringify(sourceData)
+        });
+    },
+
+    updateSource: async (id, sourceData) => {
+        return await httpClient(`/api/sources/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(sourceData)
+        });
+    },
+
+    activateSource: async (id) => {
+        return await httpClient(`/api/sources/${id}/activate`, {
+            method: 'PATCH'
+        });
+    },
+
+    deactivateSource: async (id) => {
+        return await httpClient(`/api/sources/${id}/deactivate`, {
+            method: 'PATCH'
+        });
+    },
+
+    deleteSource: async (id) => {
+        return await httpClient(`/api/sources/${id}`, {
+            method: 'DELETE'
+        });
+    },
+
+    // ==================== Personalization ====================
+    getPersonalizedFeed: async (page = 0, size = 20) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(
+            `/api/v1/personalization/feed/${user.id}?page=${page}&size=${size}&sort=relevanceScore,desc`
+        );
+    },
+
+    recordReadingInteraction: async (articleId, timeSpentSeconds) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/personalization/interactions/${user.id}/read`, {
+            method: 'POST',
+            body: JSON.stringify({ articleId, timeSpentSeconds })
+        });
+    },
+
+    recordFeedback: async (articleId, feedbackType) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/personalization/interactions/${user.id}/feedback`, {
+            method: 'POST',
+            body: JSON.stringify({ articleId, feedbackType })
+        });
+    },
+
+    getUserPreferences: async () => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/personalization/preferences/${user.id}`);
+    },
+
+    updateUserPreference: async (preferenceData) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/personalization/preferences/${user.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(preferenceData)
+        });
+    },
+
+    getInferredInterests: async () => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/personalization/interests/${user.id}`);
+    },
+
+    getSimilarArticles: async (articleId, limit = 10) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(
+            `/api/v1/personalization/similar/${user.id}/${articleId}?limit=${limit}`
+        );
+    },
+
+    // ==================== Users ====================
+    getCurrentUser: async () => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/users/${user.id}`);
+    },
+
+    getUserWithStats: async () => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/users/${user.id}/stats`);
+    },
+
+    updateCurrentUser: async (updateData) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/users/${user.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updateData)
+        });
+    },
+
+    changePassword: async (currentPassword, newPassword) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(`/api/v1/users/${user.id}/password`, {
+            method: 'PUT',
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+    },
+
+    checkEmailExists: async (email) => {
+        return await httpClient(`/api/v1/users/check/email?email=${encodeURIComponent(email)}`);
+    },
+
+    checkUsernameExists: async (username) => {
+        return await httpClient(`/api/v1/users/check/username?username=${encodeURIComponent(username)}`);
+    },
+
+    // ==================== Utility ====================
+    isAuthenticated: () => {
+        return !!tokenManager.getToken();
+    },
+
+    getCurrentUserId: () => {
+        const user = tokenManager.getUser();
+        return user ? user.id : null;
+    }
+};
+
+// Export for use in other files
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+}

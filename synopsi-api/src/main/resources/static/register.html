@@ -13,6 +13,13 @@
         <p class="subtitle">Get started with personalized news summaries</p>
 
         <form id="registerForm">
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required minlength="3">
+            </div>
+
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" required>
@@ -28,7 +35,7 @@
                 <input type="password" id="confirmPassword" name="confirmPassword" required>
             </div>
 
-            <button type="submit" class="btn btn-primary">Register</button>
+            <button type="submit" class="btn btn-primary" id="registerBtn">Register</button>
 
             <div class="auth-links">
                 <a href="index.html">Already have an account? Login</a>
@@ -37,21 +44,53 @@
     </div>
 </div>
 
+<script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    const registerForm = document.getElementById('registerForm');
+    const registerBtn = document.getElementById('registerBtn');
+    const errorMessage = document.getElementById('errorMessage');
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
+
+    function hideError() {
+        errorMessage.style.display = 'none';
+    }
+
+    registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        hideError();
+
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
 
         if (password !== confirmPassword) {
-            alert('Passwords do not match');
+            showError('Passwords do not match');
             return;
         }
 
-        console.log('Registration attempt');
-        alert('Registration successful! Please login.');
-        window.location.href = 'index.html';
+        if (password.length < 8) {
+            showError('Password must be at least 8 characters');
+            return;
+        }
+
+        registerBtn.disabled = true;
+        registerBtn.textContent = 'Creating account...';
+
+        try {
+            await api.register(username, email, password);
+            alert('Registration successful! Redirecting to dashboard...');
+            window.location.href = 'dashboard.html';
+        } catch (error) {
+            showError(error.message || 'Registration failed. Please try again.');
+            registerBtn.disabled = false;
+            registerBtn.textContent = 'Register';
+        }
     });
 </script>
 </body>

@@ -56,6 +56,22 @@ public class AuthController {
     }
 
     /**
+     * POST /api/auth/password-reset/confirm
+     * Confirm password reset with token and new password
+     */
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<MessageResponse> confirmPasswordReset(
+            @Valid @RequestBody PasswordResetConfirmDto request) {
+
+        log.info("POST /api/auth/password-reset/confirm - Confirming password reset");
+        authService.confirmPasswordReset(request);
+
+        return ResponseEntity.ok(new MessageResponse(
+                "Password has been reset successfully. You can now login with your new password."
+        ));
+    }
+
+    /**
      * Simple message response
      */
     record MessageResponse(String message) {}

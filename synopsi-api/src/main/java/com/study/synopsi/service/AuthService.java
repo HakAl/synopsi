@@ -17,7 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -117,22 +119,66 @@ public class AuthService implements UserDetailsService {
     }
 
     /**
-     * Initiate password reset (simplified version - just validates email exists)
+     * Initiate password reset - generates token and logs it
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public void requestPasswordReset(PasswordResetRequestDto request) {
         log.info("Password reset requested for email: {}", request.getEmail());
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("No account found with that email"));
+                .orElse(null);
 
-        // In a real implementation, you would:
-        // 1. Generate a reset token
-        // 2. Store it in the database with expiration
-        // 3. Send an email with the reset link
+        // Don't reveal if email exists or not for security
+        if (user == null) {
+            log.info("Password reset requested for non-existent email: {}", request.getEmail());
+            return;
+        }
 
-        log.info("Password reset email would be sent to: {}", request.getEmail());
-        // For now, just log it
+        // Generate reset token (UUID)
+        String resetToken = UUID.randomUUID().toString();
+
+        // Set expiration (1 hour from now)
+        LocalDateTime expiry = LocalDateTime.now().plusHours(1);
+
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(expiry);
+        userRepository.save(user);
+
+        // LOG THE TOKEN FOR DEVELOPMENT (in production, send email)
+        log.warn("=".repeat(80));
+        log.warn("PASSWORD RESET TOKEN FOR: {}", request.getEmail());
+        log.warn("Token: {}", resetToken);
+        log.warn("Expires: {}", expiry);
+        log.warn("Reset URL: http://localhost:8080/reset-password.html?token={}", resetToken);
+        log.warn("=".repeat(80));
+    }
+
+    /**
+     * Confirm password reset with token
+     */
+    @Transactional
+    public void confirmPasswordReset(PasswordResetConfirmDto request) {
+        log.info("Password reset confirmation attempt with token: {}", request.getToken());
+
+        User user = userRepository.findByResetToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+
+        // Check if token is expired
+        if (user.getResetTokenExpiry() == null ||
+                user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+        // Clear reset token
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+
+        userRepository.save(user);
+
+        log.info("Password reset successful for user: {}", user.getUsername());
     }
 
     /**

@@ -58,6 +58,12 @@ public class User {
     @Column
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "reset_token", length = 100)
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
+
     // User preferences/settings as JSON or individual columns
     @Column(columnDefinition = "TEXT")
     private String preferences; // Could store JSON for flexible settings

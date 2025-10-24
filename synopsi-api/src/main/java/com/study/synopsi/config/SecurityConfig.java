@@ -27,11 +27,11 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - API
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()  // This already covers /password-reset/confirm
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         // Public endpoints - Static UI files
-                        .requestMatchers("/", "/index.html", "/register.html").permitAll()
+                        .requestMatchers("/", "/index.html", "/register.html", "/forgot-password.html", "/reset-password.html").permitAll()
                         .requestMatchers("/css/**", "/js/**").permitAll()
                         .requestMatchers("/*.html").permitAll()
                         // All other endpoints require authentication

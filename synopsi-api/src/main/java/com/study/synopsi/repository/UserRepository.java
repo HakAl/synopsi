@@ -25,6 +25,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     /**
+     * Find User by password reset token
+     *
+     * @param resetToken
+     * @return
+     */
+    Optional<User> findByResetToken(String resetToken);
+
+    /**
      * Find user by username or email (flexible login)
      */
     @Query("SELECT u FROM User u WHERE u.username = :identifier OR u.email = :identifier")

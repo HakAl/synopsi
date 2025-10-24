@@ -4,27 +4,47 @@ let currentTopicFilter = 'all';
 let summaries = [];
 
 async function loadDashboard() {
-    await loadTopics();
-    await loadFeed();
+    try {
+        await loadTopics();
+        await loadFeed();
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        alert('Error loading dashboard: ' + (error.message || 'Unknown error'));
+    }
 }
 
 async function loadTopics() {
-    const topics = await api.getAllTopics();
-    const topicList = document.getElementById('topicList');
+    try {
+        const topics = await api.getAllTopics();
+        const topicList = document.getElementById('topicList');
 
-    topics.forEach(topic => {
-        const button = document.createElement('button');
-        button.className = 'topic-tag';
-        button.textContent = topic.name;
-        button.dataset.topic = topic.slug;
-        button.addEventListener('click', () => filterByTopic(topic.slug));
-        topicList.appendChild(button);
-    });
+        topics.forEach(topic => {
+            const button = document.createElement('button');
+            button.className = 'topic-tag';
+            button.textContent = topic.name;
+            button.dataset.topic = topic.slug;
+            button.addEventListener('click', () => filterByTopic(topic.slug));
+            topicList.appendChild(button);
+        });
+    } catch (error) {
+        console.error('Error loading topics:', error);
+    }
 }
 
 async function loadFeed() {
-    summaries = await api.getPersonalizedFeed();
-    renderFeed();
+    try {
+        // getPersonalizedFeed returns paginated data
+        const feedData = await api.getPersonalizedFeed(0, 20);
+
+        // Handle both array and paginated response
+        summaries = feedData.content || feedData;
+
+        renderFeed();
+    } catch (error) {
+        console.error('Error loading feed:', error);
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('feedContainer').style.display = 'none';
+    }
 }
 
 function renderFeed() {
@@ -34,7 +54,7 @@ function renderFeed() {
     let filtered = summaries;
     if (currentTopicFilter !== 'all') {
         filtered = summaries.filter(s =>
-            s.topics.some(t => t.toLowerCase() === currentTopicFilter.toLowerCase())
+            s.topics && s.topics.some(t => t.toLowerCase() === currentTopicFilter.toLowerCase())
         );
     }
 
@@ -67,7 +87,7 @@ function createSummaryCard(summary) {
                 <div class="summary-meta">${summary.source} · ${date}</div>
             </div>
         </div>
-        <div class="summary-preview">${summary.preview}</div>
+        <div class="summary-preview">${summary.preview || summary.summary?.substring(0, 150) + '...'}</div>
         <div class="summary-full" id="summary-${summary.id}">
             <p>${summary.summary}</p>
             <div class="summary-actions">
