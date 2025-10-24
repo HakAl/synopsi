@@ -34,6 +34,10 @@ or
 
 ```.\gradlew test```
 
+### Launch App
+
+```.\gradlew.bat :synopsi-api:bootRun```
+
 -------------------
 
 ## Trouble Shoot

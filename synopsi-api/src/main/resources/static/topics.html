@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synopsi - Manage Topics</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-brand">Synopsi</div>
+    <div class="nav-links">
+        <a href="dashboard.html">Feed</a>
+        <a href="sources.html">Sources</a>
+        <a href="topics.html" class="active">Topics</a>
+        <a href="settings.html">Settings</a>
+        <a href="#" id="logout">Logout</a>
+    </div>
+</nav>
+
+<div class="container">
+    <h2>Select Your Interests</h2>
+
+    <div class="card">
+        <p>Choose topics you're interested in to personalize your feed</p>
+        <div id="topicGrid" class="topic-grid"></div>
+    </div>
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/topics.js"></script>
+</body>
+</html>

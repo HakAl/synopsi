@@ -1,0 +1,106 @@
+checkAuth();
+
+let currentTopicFilter = 'all';
+let summaries = [];
+
+async function loadDashboard() {
+    await loadTopics();
+    await loadFeed();
+}
+
+async function loadTopics() {
+    const topics = await api.getAllTopics();
+    const topicList = document.getElementById('topicList');
+
+    topics.forEach(topic => {
+        const button = document.createElement('button');
+        button.className = 'topic-tag';
+        button.textContent = topic.name;
+        button.dataset.topic = topic.slug;
+        button.addEventListener('click', () => filterByTopic(topic.slug));
+        topicList.appendChild(button);
+    });
+}
+
+async function loadFeed() {
+    summaries = await api.getPersonalizedFeed();
+    renderFeed();
+}
+
+function renderFeed() {
+    const container = document.getElementById('feedContainer');
+    const emptyState = document.getElementById('emptyState');
+
+    let filtered = summaries;
+    if (currentTopicFilter !== 'all') {
+        filtered = summaries.filter(s =>
+            s.topics.some(t => t.toLowerCase() === currentTopicFilter.toLowerCase())
+        );
+    }
+
+    if (filtered.length === 0) {
+        container.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    container.style.display = 'flex';
+    emptyState.style.display = 'none';
+    container.innerHTML = '';
+
+    filtered.forEach(summary => {
+        const card = createSummaryCard(summary);
+        container.appendChild(card);
+    });
+}
+
+function createSummaryCard(summary) {
+    const card = document.createElement('div');
+    card.className = 'summary-card';
+
+    const date = new Date(summary.publishedAt).toLocaleDateString();
+
+    card.innerHTML = `
+        <div class="summary-header">
+            <div>
+                <div class="summary-title">${summary.title}</div>
+                <div class="summary-meta">${summary.source} · ${date}</div>
+            </div>
+        </div>
+        <div class="summary-preview">${summary.preview}</div>
+        <div class="summary-full" id="summary-${summary.id}">
+            <p>${summary.summary}</p>
+            <div class="summary-actions">
+                <a href="article.html?id=${summary.id}" target="_blank">Read full article →</a>
+            </div>
+        </div>
+    `;
+
+    card.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'A') {
+            toggleSummary(summary.id);
+        }
+    });
+
+    return card;
+}
+
+function toggleSummary(id) {
+    const summaryDiv = document.getElementById(`summary-${id}`);
+    summaryDiv.classList.toggle('expanded');
+}
+
+function filterByTopic(topic) {
+    currentTopicFilter = topic;
+
+    document.querySelectorAll('.topic-tag').forEach(tag => {
+        tag.classList.remove('active');
+        if (tag.dataset.topic === topic) {
+            tag.classList.add('active');
+        }
+    });
+
+    renderFeed();
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synopsi - Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-brand">Synopsi</div>
+    <div class="nav-links">
+        <a href="dashboard.html" class="active">Feed</a>
+        <a href="sources.html">Sources</a>
+        <a href="topics.html">Topics</a>
+        <a href="settings.html">Settings</a>
+        <a href="#" id="logout">Logout</a>
+    </div>
+</nav>
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <h3>Topics</h3>
+        <div id="topicList" class="topic-list">
+            <button class="topic-tag active" data-topic="all">All Topics</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-header">
+            <h2>Your Personalized Feed</h2>
+        </div>
+
+        <div id="feedContainer" class="feed-container"></div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>No summaries yet</h3>
+            <p>Add RSS feeds to get started</p>
+            <a href="sources.html" class="btn btn-primary">Add Feeds</a>
+        </div>
+    </main>
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

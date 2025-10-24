@@ -6,6 +6,7 @@ import com.study.synopsi.model.User;
 import com.study.synopsi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AuthService implements UserDetailsService {
 
@@ -28,6 +28,20 @@ public class AuthService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+
+    // Use @Lazy on AuthenticationManager to break circular dependency
+    public AuthService(
+            UserRepository userRepository,
+            UserService userService,
+            PasswordEncoder passwordEncoder,
+            JwtUtil jwtUtil,
+            @Lazy AuthenticationManager authenticationManager) {
+        this.userRepository = userRepository;
+        this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+        this.authenticationManager = authenticationManager;
+    }
 
     /**
      * Register a new user
@@ -116,7 +130,7 @@ public class AuthService implements UserDetailsService {
         // 1. Generate a reset token
         // 2. Store it in the database with expiration
         // 3. Send an email with the reset link
-        
+
         log.info("Password reset email would be sent to: {}", request.getEmail());
         // For now, just log it
     }
