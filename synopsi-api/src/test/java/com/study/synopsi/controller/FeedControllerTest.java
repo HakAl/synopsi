@@ -1,6 +1,8 @@
 package com.study.synopsi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.study.synopsi.config.JwtAuthenticationFilter;
+import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.dto.FeedRequestDto;
 import com.study.synopsi.dto.FeedResponseDto;
 import com.study.synopsi.dto.PagedResponseDto;
@@ -9,17 +11,20 @@ import com.study.synopsi.exception.FeedNotFoundException;
 import com.study.synopsi.exception.GlobalExceptionHandler;
 import com.study.synopsi.exception.InvalidFeedException;
 import com.study.synopsi.model.Feed;
+import com.study.synopsi.service.AuthService;
 import com.study.synopsi.service.FeedService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -37,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(FeedController.class)
 @Import(GlobalExceptionHandler.class)
 @DisplayName("FeedController Tests")
+@AutoConfigureMockMvc(addFilters = false)
 class FeedControllerTest {
 
     @Autowired
@@ -47,6 +53,18 @@ class FeedControllerTest {
 
     @MockBean
     private FeedService feedService;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
 
     private FeedRequestDto testFeedRequestDto;
     private FeedResponseDto testFeedResponseDto;

@@ -1,21 +1,26 @@
 package com.study.synopsi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.study.synopsi.config.JwtAuthenticationFilter;
+import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.dto.SourceRequestDto;
 import com.study.synopsi.dto.SourceResponseDto;
 import com.study.synopsi.exception.GlobalExceptionHandler;
 import com.study.synopsi.exception.SourceNotFoundException;
 import com.study.synopsi.model.Source;
+import com.study.synopsi.service.AuthService;
 import com.study.synopsi.service.SourceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -33,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = "spring.main.allow-bean-definition-overriding=true")
 @Import(GlobalExceptionHandler.class)
 @DisplayName("SourceController Integration Tests")
+@AutoConfigureMockMvc(addFilters = false)
 class SourceControllerTest {
 
     @Autowired
@@ -43,6 +49,18 @@ class SourceControllerTest {
 
     @MockBean
     private SourceService sourceService;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
 
     private SourceRequestDto requestDto;
     private SourceResponseDto responseDto;

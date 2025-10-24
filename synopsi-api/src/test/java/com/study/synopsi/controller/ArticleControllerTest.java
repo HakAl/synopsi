@@ -1,17 +1,27 @@
 package com.study.synopsi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.study.synopsi.config.JwtAuthenticationFilter;
+import com.study.synopsi.config.JwtUtil;
+import com.study.synopsi.config.TestSecurityConfig;
 import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
 import com.study.synopsi.dto.PagedResponseDto;
 import com.study.synopsi.dto.filter.ArticleFilterParams;
 import com.study.synopsi.service.ArticleService;
+import com.study.synopsi.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
@@ -24,6 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ArticleController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class ArticleControllerTest {
 
     @Autowired
@@ -32,9 +43,20 @@ public class ArticleControllerTest {
     @MockBean
     private ArticleService articleService;
 
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
+
     @Autowired
     private ObjectMapper objectMapper;
-
     @Test
     void whenGetAllArticles_thenReturnListOfArticles() throws Exception {
         // Given: Create article DTO

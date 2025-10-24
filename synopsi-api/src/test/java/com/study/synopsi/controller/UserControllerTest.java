@@ -1,15 +1,20 @@
 package com.study.synopsi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.study.synopsi.config.JwtAuthenticationFilter;
+import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.dto.UserRequestDto;
 import com.study.synopsi.dto.UserResponseDto;
+import com.study.synopsi.service.AuthService;
 import com.study.synopsi.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -21,17 +26,30 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(UserController.class) // Focus only on testing the UserController
+@WebMvcTest(UserController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class UserControllerTest {
 
     @Autowired
-    private MockMvc mockMvc; // Main entry point for server-side Spring MVC test support
+    private MockMvc mockMvc;
 
-    @MockBean // Creates a mock of UserService and adds it to the application context
+    @MockBean
     private UserService userService;
 
     @Autowired
-    private ObjectMapper objectMapper; // Utility for converting Java objects to/from JSON
+    private ObjectMapper objectMapper;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
 
     private UserRequestDto userRequestDto;
     private UserResponseDto userResponseDto;

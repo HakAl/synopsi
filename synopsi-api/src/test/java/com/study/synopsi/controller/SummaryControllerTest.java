@@ -1,17 +1,22 @@
 package com.study.synopsi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.study.synopsi.config.JwtAuthenticationFilter;
+import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.model.Summary;
 import com.study.synopsi.model.SummaryJob;
+import com.study.synopsi.service.AuthService;
 import com.study.synopsi.service.SummaryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
@@ -27,6 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(SummaryController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class SummaryControllerTest {
 
     @Autowired
@@ -37,6 +43,18 @@ public class SummaryControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
 
     @Test
     void requestSummary_shouldReturnAccepted() throws Exception {

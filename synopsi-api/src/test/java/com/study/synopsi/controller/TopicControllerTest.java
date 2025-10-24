@@ -1,21 +1,26 @@
 package com.study.synopsi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.study.synopsi.config.JwtAuthenticationFilter;
+import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.dto.TopicRequestDto;
 import com.study.synopsi.dto.TopicResponseDto;
 import com.study.synopsi.exception.GlobalExceptionHandler;
 import com.study.synopsi.exception.InvalidTopicHierarchyException;
 import com.study.synopsi.exception.TopicNotFoundException;
+import com.study.synopsi.service.AuthService;
 import com.study.synopsi.service.TopicService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -33,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = "spring.main.allow-bean-definition-overriding=true")
 @Import(GlobalExceptionHandler.class)
 @DisplayName("TopicController Integration Tests")
+@AutoConfigureMockMvc(addFilters = false)
 class TopicControllerTest {
 
     @Autowired
@@ -43,6 +49,18 @@ class TopicControllerTest {
 
     @MockBean
     private TopicService topicService;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
 
     private TopicRequestDto requestDto;
     private TopicResponseDto rootTopicResponseDto;

@@ -1,5 +1,7 @@
 package com.study.synopsi.service;
 
+import com.study.synopsi.config.JwtAuthenticationFilter;
+import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.dto.UserRequestDto;
 import com.study.synopsi.dto.UserResponseDto;
 import com.study.synopsi.dto.UserUpdateDto;
@@ -8,6 +10,8 @@ import com.study.synopsi.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -16,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
-@Transactional // Rolls back the transaction after each test method
+@Transactional
 class UserServiceIntegrationTest {
 
     @Autowired
@@ -24,6 +28,16 @@ class UserServiceIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    // Add these mocks for SecurityConfig dependencies
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
 
     @Test
     void createUser_shouldSaveUserToDatabase() {
