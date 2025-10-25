@@ -51,6 +51,25 @@ User → ReadingHistory ← Article
 User → UserArticleFeedback ← Article
 ```
 
+### Topics
+
+----------------
+Topic - This is the main entity. It's a hierarchical taxonomy (like a category tree):
+
+ArticleTopic - This is a join table entity. 
+It connects Articles to Topics with additional metadata:
+
+articleId + topicId (the relationship)
+Potentially a confidence score or relevance weight
+Who/what assigned it (user vs worker)
+
+Topic = the taxonomy/categories themselves (predefined list)
+ArticleTopic = the many-to-many relationship (which articles belong to which topics)
+Article = the content being categorized
+
+### Data Flow
+
+-----------------
 
 - Content ingestion (Feed → Article)
 - Content organization (Article → Topic)

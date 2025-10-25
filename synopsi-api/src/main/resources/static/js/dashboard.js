@@ -15,16 +15,20 @@ async function loadDashboard() {
 
 async function loadTopics() {
     try {
-        const topics = await api.getAllTopics();
-        const topicList = document.getElementById('topicList');
+        const topics = await api.getAllTopics({ active: true });
+        const topicSelect = document.getElementById('topicSelect');
 
+        // Add topics as options
         topics.forEach(topic => {
-            const button = document.createElement('button');
-            button.className = 'topic-tag';
-            button.textContent = topic.name;
-            button.dataset.topic = topic.slug;
-            button.addEventListener('click', () => filterByTopic(topic.slug));
-            topicList.appendChild(button);
+            const option = document.createElement('option');
+            option.value = topic.slug;
+            option.textContent = topic.name;
+            topicSelect.appendChild(option);
+        });
+
+        // Add change event listener
+        topicSelect.addEventListener('change', (e) => {
+            filterByTopic(e.target.value);
         });
     } catch (error) {
         console.error('Error loading topics:', error);
@@ -112,14 +116,6 @@ function toggleSummary(id) {
 
 function filterByTopic(topic) {
     currentTopicFilter = topic;
-
-    document.querySelectorAll('.topic-tag').forEach(tag => {
-        tag.classList.remove('active');
-        if (tag.dataset.topic === topic) {
-            tag.classList.add('active');
-        }
-    });
-
     renderFeed();
 }
 

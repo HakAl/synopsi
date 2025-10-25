@@ -483,3 +483,69 @@ article .article-content {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
 }
+/* Add these styles to your existing styles.css file */
+
+/* Topic Filter Dropdown */
+.topic-filter {
+    display: flex;
+    align-items: center;
+}
+
+.topic-filter select {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background-color: var(--background);
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 200px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.topic-filter select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Content Header - update existing or add if missing */
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.content-header h2 {
+    margin: 0;
+}
+
+/* Empty State visibility control */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    display: none; /* Hidden by default */
+}
+
+.empty-state.show {
+    display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .topic-filter {
+        width: 100%;
+    }
+
+    .topic-filter select {
+        width: 100%;
+    }
+}
