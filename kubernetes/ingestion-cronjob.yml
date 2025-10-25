@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: synopsi-ingestion
+spec:
+  schedule: "*/30 * * * *"  # Every 30 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: ingestion
+              image: synopsi-ingestion:latest
+              command: ["python", "ingestion/main.py"]
+          restartPolicy: OnFailure

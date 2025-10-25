@@ -7,6 +7,7 @@ import com.study.synopsi.dto.filter.ArticleFilterParams;
 import com.study.synopsi.exception.ArticleNotFoundException;
 import com.study.synopsi.mapper.ArticleMapper;
 import com.study.synopsi.model.Article;
+import com.study.synopsi.model.Summary;
 import com.study.synopsi.repository.ArticleRepository;
 import com.study.synopsi.specification.ArticleSpecification;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final ArticleMapper articleMapper;
+    private final SummaryService summaryService;
 
     /**
      * Get filtered and paginated articles
@@ -70,15 +72,21 @@ public class ArticleService {
     /**
      * Create new article (from Python worker or API)
      */
+
     @Transactional
     public ArticleResponseDto createArticle(ArticleRequestDto requestDto) {
-        // Mapper handles feed validation and conversion
+        // Save article
         Article article = articleMapper.toEntity(requestDto);
-
-        // Save to database
         Article savedArticle = articleRepository.save(article);
 
-        // Return as DTO
+        // Auto-create default summary job
+        summaryService.requestSummary(
+                savedArticle.getId(),
+                null,  // Default summary (no user)
+                Summary.SummaryType.BRIEF,
+                Summary.SummaryLength.MEDIUM
+        );
+
         return articleMapper.toDto(savedArticle);
     }
 

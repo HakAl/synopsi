@@ -6,6 +6,8 @@ import com.study.synopsi.exception.ArticleNotFoundException;
 import com.study.synopsi.mapper.ArticleMapper;
 import com.study.synopsi.model.Article;
 import com.study.synopsi.model.Feed;
+import com.study.synopsi.model.Summary;
+import com.study.synopsi.model.SummaryJob;
 import com.study.synopsi.repository.ArticleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +35,9 @@ class ArticleServiceTest {
 
     @Mock
     private ArticleMapper articleMapper;
+
+    @Mock
+    private SummaryService summaryService;
 
     @InjectMocks
     private ArticleService articleService;
@@ -175,6 +180,14 @@ class ArticleServiceTest {
             when(articleRepository.save(newArticle)).thenReturn(savedArticle);
             when(articleMapper.toDto(savedArticle)).thenReturn(savedResponseDto);
 
+            // Mock SummaryService call (it's called after save)
+            when(summaryService.requestSummary(
+                    eq(2L),  // savedArticle.getId()
+                    isNull(),  // userId = null
+                    any(Summary.SummaryType.class),
+                    any(Summary.SummaryLength.class)
+            )).thenReturn(new SummaryJob());  // Return a dummy job
+
             // Act
             ArticleResponseDto result = articleService.createArticle(requestDto);
 
@@ -187,6 +200,14 @@ class ArticleServiceTest {
             verify(articleMapper, times(1)).toEntity(requestDto);
             verify(articleRepository, times(1)).save(newArticle);
             verify(articleMapper, times(1)).toDto(savedArticle);
+
+            // Verify SummaryService was called
+            verify(summaryService, times(1)).requestSummary(
+                    eq(2L),
+                    isNull(),
+                    any(Summary.SummaryType.class),
+                    any(Summary.SummaryLength.class)
+            );
         }
 
         @Test
@@ -196,7 +217,6 @@ class ArticleServiceTest {
             ArticleRequestDto badRequestDto = new ArticleRequestDto();
             badRequestDto.setFeedId(99L);
 
-            // Mapper throws exception when feedId not found
             when(articleMapper.toEntity(badRequestDto))
                     .thenThrow(new IllegalArgumentException("Feed not found with id: 99"));
 
@@ -209,6 +229,7 @@ class ArticleServiceTest {
             assertThat(exception.getMessage()).isEqualTo("Feed not found with id: 99");
             verify(articleMapper, times(1)).toEntity(badRequestDto);
             verify(articleRepository, never()).save(any(Article.class));
+            verify(summaryService, never()).requestSummary(anyLong(), any(), any(), any());
         }
     }
 
