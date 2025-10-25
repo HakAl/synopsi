@@ -22,7 +22,20 @@
     <div class="article-container">
         <a href="dashboard.html" class="back-link">&larr; Back to Feed</a>
 
-        <article id="articleContent"></article>
+        <article id="articleContent">
+            <h1 id="articleTitle"></h1>
+            <div class="article-meta" id="articleMeta"></div>
+            <img id="articleImage" class="article-image" alt="">
+            <p class="article-description" id="articleDescription"></p>
+            <div class="article-content" id="articleBody"></div>
+            <p class="article-author" id="articleAuthor"></p>
+        </article>
+
+        <div id="errorMessage" class="error-message" style="display: none;">
+            <h2>Unable to load article</h2>
+            <p id="errorText"></p>
+            <a href="dashboard.html" class="back-link">Return to Feed</a>
+        </div>
     </div>
 </div>
 

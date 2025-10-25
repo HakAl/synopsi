@@ -18,16 +18,7 @@ async function loadArticle() {
 
     } catch (error) {
         console.error('Error loading article:', error);
-
-        // Show user-friendly error message
-        const container = document.getElementById('articleContent');
-        container.innerHTML = `
-            <div class="error-message">
-                <h2>Unable to load article</h2>
-                <p>${error.message || 'The article could not be found.'}</p>
-                <a href="dashboard.html" class="back-link">Return to Feed</a>
-            </div>
-        `;
+        showError(error.message || 'The article could not be found.');
     }
 }
 
@@ -48,35 +39,71 @@ async function recordReading(articleId) {
 }
 
 function renderArticle(article) {
-    const container = document.getElementById('articleContent');
+    // Show article, hide error
+    document.getElementById('articleContent').style.display = 'block';
+    document.getElementById('errorMessage').style.display = 'none';
+
+    // Title
+    document.getElementById('articleTitle').textContent = article.title;
+
+    // Meta information
     const date = article.publicationDate
         ? new Date(article.publicationDate).toLocaleDateString()
         : 'Unknown date';
 
-    // Use article properties from ArticleResponseDto
     const sourceInfo = article.sourceName
-        ? `${article.sourceName}`
+        ? article.sourceName
         : (article.feedTitle || 'Unknown source');
 
-    const content = article.content || article.summary || 'No content available.';
     const readTime = article.readTimeMinutes
-        ? `${article.readTimeMinutes} min read`
+        ? ` · ${article.readTimeMinutes} min read`
         : '';
 
-    container.innerHTML = `
-        <h1>${article.title}</h1>
-        <div class="article-meta">
-            ${sourceInfo} · ${date}
-            ${readTime ? `· ${readTime}` : ''}
-            ${article.originalUrl ? `· <a href="${article.originalUrl}" target="_blank" rel="noopener">View original</a>` : ''}
-        </div>
-        ${article.imageUrl ? `<img src="${article.imageUrl}" alt="${article.title}" class="article-image">` : ''}
-        ${article.description ? `<p class="article-description">${article.description}</p>` : ''}
-        <div class="article-content">
-            ${content}
-        </div>
-        ${article.author ? `<p class="article-author">By ${article.author}</p>` : ''}
-    `;
+    const originalLink = article.originalUrl
+        ? ` · <a href="${article.originalUrl}" target="_blank" rel="noopener">View original</a>`
+        : '';
+
+    document.getElementById('articleMeta').innerHTML =
+        `${sourceInfo} · ${date}${readTime}${originalLink}`;
+
+    // Image
+    const imageElement = document.getElementById('articleImage');
+    if (article.imageUrl) {
+        imageElement.src = article.imageUrl;
+        imageElement.alt = article.title;
+        imageElement.style.display = 'block';
+    } else {
+        imageElement.style.display = 'none';
+    }
+
+    // Description
+    const descElement = document.getElementById('articleDescription');
+    if (article.description) {
+        descElement.textContent = article.description;
+        descElement.style.display = 'block';
+    } else {
+        descElement.style.display = 'none';
+    }
+
+    // Content
+    const content = article.content || article.summary || 'No content available.';
+    document.getElementById('articleBody').textContent = content;
+
+    // Author
+    const authorElement = document.getElementById('articleAuthor');
+    if (article.author) {
+        authorElement.textContent = `By ${article.author}`;
+        authorElement.style.display = 'block';
+    } else {
+        authorElement.style.display = 'none';
+    }
+}
+
+function showError(message) {
+    // Hide article, show error
+    document.getElementById('articleContent').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'block';
+    document.getElementById('errorText').textContent = message;
 }
 
 document.addEventListener('DOMContentLoaded', loadArticle);
