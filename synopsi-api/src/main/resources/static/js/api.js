@@ -57,7 +57,8 @@ const httpClient = async (url, options = {}) => {
         const response = await fetch(`${API_BASE_URL}${url}`, config);
 
         // Handle 401 - token expired or invalid
-        if (response.status === 401) {
+        // Handle 403 - forbidden/insufficient permissions
+        if (response.status === 401 || response.status === 403) {
             tokenManager.clear();
             window.location.href = '/index.html';
             throw new Error('Session expired. Please login again.');

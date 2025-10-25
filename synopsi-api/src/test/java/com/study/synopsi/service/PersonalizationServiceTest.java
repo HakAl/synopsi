@@ -49,7 +49,7 @@ class PersonalizationServiceTest {
 
     @Mock
     private PersonalizationConfig config;
-    
+
     @Mock
     private TopicRepository topicRepository;
 
