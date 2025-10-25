@@ -35,3 +35,59 @@ out/
 
 ### VS Code ###
 .vscode/
+
+
+### Python ###
+# Virtual environments
+.venv/
+venv/
+env/
+.env/
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Build and distribution
+dist/
+*.egg-info/
+*.egg
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+coverage.xml
+*.cover
+*.lcov
+htmlcov/
+
+# Linters and formatters
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# IDEs and editors
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Environment variables
+.env
+.flaskenv
+*.env.local
+*.env.development
+*.env.production
+
+# Profiling and debugging
+*.prof
+*.lprof
+
+# Miscellaneous
+*.pyproj
+.pypirc
+.python-version
