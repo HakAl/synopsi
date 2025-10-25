@@ -9,7 +9,7 @@ async function loadDashboard() {
         await loadFeed();
     } catch (error) {
         console.error('Error loading dashboard:', error);
-//        todo
+        showError('Failed to load dashboard. Please try refreshing the page.');
     }
 }
 
@@ -32,6 +32,7 @@ async function loadTopics() {
         });
     } catch (error) {
         console.error('Error loading topics:', error);
+        showError('Failed to load topics.');
     }
 }
 
@@ -46,6 +47,7 @@ async function loadFeed() {
         renderFeed();
     } catch (error) {
         console.error('Error loading feed:', error);
+        showError('Failed to load your personalized feed.');
         document.getElementById('emptyState').style.display = 'block';
         document.getElementById('feedContainer').style.display = 'none';
     }
@@ -70,7 +72,7 @@ function renderFeed() {
 
     container.style.display = 'flex';
     emptyState.style.display = 'none';
-    container.innerHTML = '';
+    container.textContent = '';
 
     filtered.forEach(summary => {
         const card = createSummaryCard(summary);
@@ -84,21 +86,53 @@ function createSummaryCard(summary) {
 
     const date = new Date(summary.publishedAt).toLocaleDateString();
 
-    card.innerHTML = `
-        <div class="summary-header">
-            <div>
-                <div class="summary-title">${summary.title}</div>
-                <div class="summary-meta">${summary.source} · ${date}</div>
-            </div>
-        </div>
-        <div class="summary-preview">${summary.preview || summary.summary?.substring(0, 150) + '...'}</div>
-        <div class="summary-full" id="summary-${summary.id}">
-            <p>${summary.summary}</p>
-            <div class="summary-actions">
-                <a href="article.html?id=${summary.id}" target="_blank">Read full article →</a>
-            </div>
-        </div>
-    `;
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'summary-header';
+
+    const headerContent = document.createElement('div');
+
+    const title = document.createElement('div');
+    title.className = 'summary-title';
+    title.textContent = summary.title;
+
+    const meta = document.createElement('div');
+    meta.className = 'summary-meta';
+    meta.textContent = `${summary.source} · ${date}`;
+
+    headerContent.appendChild(title);
+    headerContent.appendChild(meta);
+    header.appendChild(headerContent);
+
+    // Create preview
+    const preview = document.createElement('div');
+    preview.className = 'summary-preview';
+    preview.textContent = summary.preview || (summary.summary?.substring(0, 150) + '...');
+
+    // Create full summary section
+    const fullSummary = document.createElement('div');
+    fullSummary.className = 'summary-full';
+    fullSummary.id = `summary-${summary.id}`;
+
+    const summaryText = document.createElement('p');
+    summaryText.textContent = summary.summary;
+
+    const actions = document.createElement('div');
+    actions.className = 'summary-actions';
+
+    const link = document.createElement('a');
+    link.href = `article.html?id=${summary.id}`;
+    link.target = '_blank';
+    link.textContent = 'Read full article →';
+
+    actions.appendChild(link);
+    fullSummary.appendChild(summaryText);
+    fullSummary.appendChild(actions);
+
+    // Assemble card
+    card.appendChild(header);
+    card.appendChild(preview);
+    card.appendChild(fullSummary);
 
     card.addEventListener('click', (e) => {
         if (e.target.tagName !== 'A') {
@@ -117,6 +151,19 @@ function toggleSummary(id) {
 function filterByTopic(topic) {
     currentTopicFilter = topic;
     renderFeed();
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', loadDashboard);
