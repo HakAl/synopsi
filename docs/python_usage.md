@@ -18,6 +18,10 @@ pip freeze | Select-String torch > requirements-example.txt
 pip install depone deptwo depthree
 pip freeze | Select-String "(depone|deptwo|depthree)" > requirements-example.txt
 ```
+### Add Requirement
+```
+pip freeze | findstr dep4 >> requirements.txt
+```
 
 ## Bash
 
@@ -37,4 +41,9 @@ pip freeze | grep torch > requirements-example.txt
 ||
 pip install depone deptwo depthree
 pip freeze | grep -E "depone|deptwo|depthree" > requirements-example.txt
+```
+
+### Add Requirement
+```
+pip freeze | grep dep4 >> requirements.txt
 ```
