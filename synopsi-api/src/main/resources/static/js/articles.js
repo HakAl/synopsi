@@ -10,29 +10,24 @@ async function loadArticle() {
     }
 
     try {
-        // Note: You'll need to add a getArticleById method to api.js
-        // For now, this uses getSimilarArticles as a workaround to demonstrate the pattern
-        // You should add this endpoint: GET /api/v1/articles/{id}
-
-        // Temporary mock until article endpoint is added
-        const article = {
-            id: articleId,
-            title: 'Article Title',
-            source: 'Source Name',
-            publishedAt: new Date().toISOString(),
-            content: 'Full article content would be displayed here. This requires an Article endpoint to be implemented in the backend.',
-            url: 'https://example.com/original-article'
-        };
-
+        const article = await api.getArticle(articleId);
         renderArticle(article);
 
         // Record reading interaction
         await recordReading(articleId);
 
     } catch (error) {
-//    todo
         console.error('Error loading article:', error);
-        window.location.href = 'dashboard.html';
+
+        // Show user-friendly error message
+        const container = document.getElementById('articleContent');
+        container.innerHTML = `
+            <div class="error-message">
+                <h2>Unable to load article</h2>
+                <p>${error.message || 'The article could not be found.'}</p>
+                <a href="dashboard.html" class="back-link">Return to Feed</a>
+            </div>
+        `;
     }
 }
 
@@ -54,17 +49,33 @@ async function recordReading(articleId) {
 
 function renderArticle(article) {
     const container = document.getElementById('articleContent');
-    const date = new Date(article.publishedAt).toLocaleDateString();
+    const date = article.publicationDate
+        ? new Date(article.publicationDate).toLocaleDateString()
+        : 'Unknown date';
+
+    // Use article properties from ArticleResponseDto
+    const sourceInfo = article.sourceName
+        ? `${article.sourceName}`
+        : (article.feedTitle || 'Unknown source');
+
+    const content = article.content || article.summary || 'No content available.';
+    const readTime = article.readTimeMinutes
+        ? `${article.readTimeMinutes} min read`
+        : '';
 
     container.innerHTML = `
         <h1>${article.title}</h1>
         <div class="article-meta">
-            ${article.source} · ${date} ·
-            <a href="${article.url}" target="_blank" rel="noopener">View original</a>
+            ${sourceInfo} · ${date}
+            ${readTime ? `· ${readTime}` : ''}
+            ${article.originalUrl ? `· <a href="${article.originalUrl}" target="_blank" rel="noopener">View original</a>` : ''}
         </div>
+        ${article.imageUrl ? `<img src="${article.imageUrl}" alt="${article.title}" class="article-image">` : ''}
+        ${article.description ? `<p class="article-description">${article.description}</p>` : ''}
         <div class="article-content">
-            ${article.content || article.summary}
+            ${content}
         </div>
+        ${article.author ? `<p class="article-author">By ${article.author}</p>` : ''}
     `;
 }
 

@@ -294,6 +294,15 @@ const api = {
         return await httpClient(`/api/v1/personalization/interests/${user.id}`);
     },
 
+    getArticle: async (articleId) => {
+        const user = tokenManager.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        return await httpClient(
+            `/api/v1/articles/${articleId}`
+        );
+    },
+
     getSimilarArticles: async (articleId, limit = 10) => {
         const user = tokenManager.getUser();
         if (!user) throw new Error('User not authenticated');

@@ -19,14 +19,14 @@ import org.springframework.web.bind.annotation.*;
  * Supports filtering, sorting, and pagination
  */
 @RestController
-@RequestMapping("/api/articles")
+@RequestMapping("/api/v1/articles")
 @RequiredArgsConstructor
 public class ArticleController {
 
     private final ArticleService articleService;
 
     /**
-     * GET /api/articles - Fetch paginated and filtered articles
+     * GET /api/v1/articles - Fetch paginated and filtered articles
      *
      * Query parameters:
      * - Filtering: status, feedId, source, startDate, endDate, language, searchTerm
@@ -64,7 +64,7 @@ public class ArticleController {
     }
 
     /**
-     * GET /api/articles/{id} - Fetch a specific article
+     * GET /api/v1/articles/{id} - Fetch a specific article
      *
      * @param id Article ID
      * @return Article details
@@ -76,7 +76,7 @@ public class ArticleController {
     }
 
     /**
-     * POST /api/articles - Create new article (for Python worker)
+     * POST /api/v1/articles - Create new article (for Python worker)
      *
      * @param requestDto Article data
      * @return Created article with HTTP 201
