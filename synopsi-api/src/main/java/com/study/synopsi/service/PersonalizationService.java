@@ -29,6 +29,7 @@ public class PersonalizationService {
     private final UserPreferenceRepository userPreferenceRepository;
     private final UserArticleFeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
+    private final TopicRepository topicRepository;
 
     private final PersonalizationConfig config;
 
@@ -358,14 +359,23 @@ public class PersonalizationService {
         UserPreference preference;
         if (existing.isPresent()) {
             preference = existing.get();
-            preference.setInterestLevel(dto.getInterestLevel());
+
+            // Use default MEDIUM if not provided
+            preference.setInterestLevel(dto.getInterestLevel() != null ?
+                    dto.getInterestLevel() : UserPreference.InterestLevel.MEDIUM);
             preference.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
         } else {
+            // Fetch the Topic entity
+            Topic topic = topicRepository.findById(dto.getTopicId())
+                    .orElseThrow(() -> new RuntimeException("Topic not found: " + dto.getTopicId()));
+
             preference = new UserPreference();
             preference.setUser(user);
-            // Note: You'll need to fetch the Topic entity here
-            // preference.setTopic(topicRepository.findById(dto.getTopicId()).orElseThrow(...));
-            preference.setInterestLevel(dto.getInterestLevel());
+            preference.setTopic(topic);
+
+            // Use default MEDIUM if not provided
+            preference.setInterestLevel(dto.getInterestLevel() != null ?
+                    dto.getInterestLevel() : UserPreference.InterestLevel.MEDIUM);
             preference.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
         }
 

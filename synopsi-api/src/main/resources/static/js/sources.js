@@ -10,7 +10,7 @@ async function loadSources() {
         renderSources();
     } catch (error) {
         console.error('Error loading sources:', error);
-        const errorMsg = error.data?.message || error.message || 'Failed to load sources. Please try again.';
+        const errorMsg = extractErrorMessage(error, 'Unable to load sources. Please try again.');
         showError('listError', errorMsg);
     }
 }
@@ -108,7 +108,7 @@ async function deleteSource(id) {
         }
     } catch (error) {
         console.error('Error deleting source:', error);
-        const errorMsg = error.data?.message || error.message || 'Failed to delete source. Please try again.';
+        const errorMsg = extractErrorMessage(error, 'Unable to delete source. Please try again.');
         showError('listError', errorMsg);
     }
 }
@@ -123,6 +123,21 @@ function showError(containerId, message) {
 function hideError(containerId) {
     const errorContainer = document.getElementById(containerId);
     errorContainer.style.display = 'none';
+}
+
+function extractErrorMessage(error, defaultMessage) {
+    // Check for general error message (user-friendly messages only)
+    if (error.data?.error && typeof error.data.error === 'string') {
+        // Only use if it's a user-friendly message, not technical jargon
+        const errorMsg = error.data.error;
+        if (!errorMsg.toLowerCase().includes('validation') &&
+            !errorMsg.toLowerCase().includes('failed')) {
+            return errorMsg;
+        }
+    }
+
+    // Always fall back to default message for validation errors or technical messages
+    return defaultMessage;
 }
 
 document.getElementById('addSourceForm').addEventListener('submit', async (e) => {
@@ -155,7 +170,7 @@ document.getElementById('addSourceForm').addEventListener('submit', async (e) =>
         renderSources();
     } catch (error) {
         console.error('Error saving source:', error);
-        const errorMsg = error.data?.message || error.message || 'Failed to save source. Please try again.';
+        const errorMsg = extractErrorMessage(error, 'Unable to save source. Please try again.');
         showError('formError', errorMsg);
     }
 });

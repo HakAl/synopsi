@@ -49,6 +49,9 @@ class PersonalizationServiceTest {
 
     @Mock
     private PersonalizationConfig config;
+    
+    @Mock
+    private TopicRepository topicRepository;
 
     @InjectMocks
     private PersonalizationService personalizationService;
@@ -269,6 +272,10 @@ class PersonalizationServiceTest {
     @Test
     void updateUserPreference_shouldCreateNewPreference() {
         // Arrange
+        Topic topic = new Topic();
+        topic.setId(1L);
+        topic.setName("Technology");
+
         UserPreferenceDto dto = new UserPreferenceDto();
         dto.setTopicId(1L);
         dto.setInterestLevel(UserPreference.InterestLevel.VERY_HIGH);
@@ -277,23 +284,22 @@ class PersonalizationServiceTest {
         UserPreference savedPreference = new UserPreference();
         savedPreference.setId(1L);
         savedPreference.setUser(user);
+        savedPreference.setTopic(topic);
         savedPreference.setInterestLevel(UserPreference.InterestLevel.VERY_HIGH);
         savedPreference.setIsActive(true);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(topicRepository.findById(1L)).thenReturn(Optional.of(topic));
         when(userPreferenceRepository.findByUserIdAndTopicId(1L, 1L)).thenReturn(Optional.empty());
         when(userPreferenceRepository.save(any(UserPreference.class))).thenReturn(savedPreference);
 
-        // Act & Assert - Will throw exception because Topic is null, which is expected behavior
-        // This test demonstrates the limitation mentioned in the README
-        try {
-            personalizationService.updateUserPreference(1L, dto);
-            // If it doesn't throw, verify save was attempted
-            verify(userPreferenceRepository).save(any(UserPreference.class));
-        } catch (NullPointerException e) {
-            // Expected - Topic needs to be fetched but TopicRepository is not injected yet
-            // This is documented in the README as a TODO
-        }
+        // Act
+        UserPreferenceDto result = personalizationService.updateUserPreference(1L, dto);
+
+        // Assert
+        assertNotNull(result);
+        verify(userPreferenceRepository).save(any(UserPreference.class));
+        verify(topicRepository).findById(1L);
     }
 
     @Test

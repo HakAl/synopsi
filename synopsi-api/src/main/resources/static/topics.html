@@ -23,12 +23,24 @@
 
     <div class="card">
         <p>Choose topics you're interested in to personalize your feed</p>
+        <div id="topicError" class="error-message" style="display: none;">
+            <p id="topicErrorText"></p>
+        </div>
         <div id="topicGrid" class="topic-grid"></div>
     </div>
 </div>
 
+<template id="topicCardTemplate">
+    <div class="topic-card"></div>
+</template>
+
+<template id="emptyTopicsTemplate">
+    <p class="empty-state">No topics available</p>
+</template>
+
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
+<script src="js/utils.js"></script>
 <script src="js/topics.js"></script>
 </body>
 </html>

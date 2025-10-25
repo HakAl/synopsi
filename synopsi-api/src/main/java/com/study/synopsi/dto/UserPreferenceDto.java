@@ -15,17 +15,18 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class UserPreferenceDto {
     private Long id;
-    
-    @NotNull
+
+    @NotNull(message = "Topic ID is required")
     private Long topicId;
-    
+
     private String topicName;
-    
-    @NotNull
-    private UserPreference.InterestLevel interestLevel;
-    
+
+    // Optional - defaults to MEDIUM if not provided
+    @Builder.Default
+    private UserPreference.InterestLevel interestLevel = UserPreference.InterestLevel.MEDIUM;
+
     private Boolean isActive;
-    
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
