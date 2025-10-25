@@ -9,7 +9,7 @@ async function loadDashboard() {
         await loadFeed();
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        alert('Error loading dashboard: ' + (error.message || 'Unknown error'));
+//        todo
     }
 }
 

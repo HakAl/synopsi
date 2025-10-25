@@ -9,7 +9,7 @@ async function loadSources() {
         renderSources();
     } catch (error) {
         console.error('Error loading sources:', error);
-        alert('Error loading sources: ' + (error.message || 'Unknown error'));
+//        todo
     }
 }
 
@@ -109,7 +109,7 @@ async function deleteSource(id) {
             }
         } catch (error) {
             console.error('Error deleting source:', error);
-            alert('Error deleting source: ' + (error.message || 'Unknown error'));
+//            todo
         }
     }
 }
@@ -134,13 +134,12 @@ document.getElementById('addSourceForm').addEventListener('submit', async (e) =>
             // Update existing source
             const updatedSource = await api.updateSource(editingSourceId, sourceData);
             sources = sources.map(s => s.id === editingSourceId ? updatedSource : s);
-            alert('Source updated successfully!');
+//            todo
             cancelEdit();
         } else {
             // Create new source
             const newSource = await api.createSource(sourceData);
             sources.push(newSource);
-            alert('Source added successfully!');
             e.target.reset();
         }
 
@@ -148,7 +147,7 @@ document.getElementById('addSourceForm').addEventListener('submit', async (e) =>
     } catch (error) {
         console.error('Error saving source:', error);
         const errorMsg = error.data?.message || error.message || 'Unknown error';
-        alert('Error saving source: ' + errorMsg);
+//        todo
     }
 });
 

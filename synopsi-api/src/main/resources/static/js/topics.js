@@ -10,7 +10,7 @@ async function loadTopics() {
         renderTopics();
     } catch (error) {
         console.error('Error loading topics:', error);
-        alert('Error loading topics: ' + (error.message || 'Unknown error'));
+//        todo
     }
 }
 

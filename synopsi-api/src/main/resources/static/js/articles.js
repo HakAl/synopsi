@@ -30,8 +30,8 @@ async function loadArticle() {
         await recordReading(articleId);
 
     } catch (error) {
+//    todo
         console.error('Error loading article:', error);
-        alert('Error loading article: ' + (error.message || 'Unknown error'));
         window.location.href = 'dashboard.html';
     }
 }
