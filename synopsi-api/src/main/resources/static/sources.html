@@ -61,21 +61,51 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 0.5rem;">
+            <div id="formError" class="error-message" style="display: none;">
+                <p id="formErrorText"></p>
+            </div>
+
+            <div class="button-group">
                 <button type="submit" class="btn btn-primary" id="submitBtn">Add Source</button>
-                <button type="button" class="btn btn-secondary" id="cancelBtn" style="display: none;" onclick="cancelEdit()">Cancel</button>
+                <button type="button" class="btn btn-secondary" id="cancelBtn" style="display: none;">Cancel</button>
             </div>
         </form>
     </div>
 
     <div class="card">
         <h3>Your Sources</h3>
+        <div id="listError" class="error-message" style="display: none;">
+            <p id="listErrorText"></p>
+        </div>
         <div id="sourceList" class="source-list"></div>
     </div>
 </div>
 
+<template id="sourceItemTemplate">
+    <div class="source-item">
+        <div class="source-info">
+            <h4 class="source-name"></h4>
+            <a href="" target="_blank" class="source-url" rel="noopener noreferrer"></a>
+            <div class="source-meta">
+                <span class="source-date"></span>
+                <span class="source-type-badge source-badge"></span>
+                <span class="source-status-badge source-badge inactive"></span>
+            </div>
+        </div>
+        <div class="source-actions">
+            <button class="btn btn-secondary edit-btn">Edit</button>
+            <button class="btn btn-danger delete-btn">Remove</button>
+        </div>
+    </div>
+</template>
+
+<template id="emptyStateTemplate">
+    <p class="empty-state">No sources added yet</p>
+</template>
+
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
+<script src="js/utils.js"></script>
 <script src="js/sources.js"></script>
 </body>
 </html>

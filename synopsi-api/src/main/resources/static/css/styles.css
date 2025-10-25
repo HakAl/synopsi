@@ -222,6 +222,11 @@ body {
     background: #dc2626;
 }
 
+.button-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
 /* Topics */
 .topic-list {
     display: flex;
