@@ -2,7 +2,7 @@ import logging
 import sys
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -32,8 +32,9 @@ class IngestionWorker:
         self.api_client = api_client
         self.feed_urls = feed_urls
         self.rss_fetcher = RSSFetcher(user_agent="Synopsi-Ingestion/1.0")
+        self.created_feeds = []
 
-        logger.info(f"Initialized ingestion worker with {len(feed_urls)} feeds")
+        logger.info(f"Initialized ingestion worker with {len(feed_urls)} feed URLs")
 
     def run(self) -> dict:
         start_time = datetime.now()
@@ -46,26 +47,56 @@ class IngestionWorker:
             logger.error("API health check failed. Aborting ingestion.")
             return self._build_error_result("API unavailable")
 
-        # Step 2: Get feeds from API and build URL -> ID mapping
-        api_feeds = self.api_client.get_all_feeds()
-        feed_url_to_id = {feed['url']: feed['id'] for feed in api_feeds}
+        # Step 2: For each feed URL, create source and feed
+        logger.info(f"Creating sources and feeds for {len(self.feed_urls)} URLs")
 
-        logger.info(f"Loaded {len(feed_url_to_id)} feeds from API")
+        for feed_url in self.feed_urls:
+            try:
+                # Create source from feed URL
+                logger.info(f"Creating source for feed URL: {feed_url}")
+                source = self.api_client.create_source(feed_url)
+
+                if not source or 'id' not in source:
+                    logger.error(f"Failed to create source for {feed_url}")
+                    continue
+
+                source_id = source['id']
+                logger.info(f"Created source ID: {source_id}")
+
+                # Create feed with the source ID
+                logger.info(f"Creating feed for URL: {feed_url}")
+                feed = self.api_client.create_feed(feed_url, source_id)
+
+                if not feed or 'id' not in feed:
+                    logger.error(f"Failed to create feed for {feed_url}")
+                    continue
+
+                feed_id = feed['id']
+                self.created_feeds.append({
+                    'feedId': feed_id,
+                    'feedUrl': feed_url,
+                    'sourceId': source_id
+                })
+                logger.info(f"Created feed ID: {feed_id} for URL: {feed_url}")
+
+            except Exception as e:
+                logger.error(f"Error creating source/feed for {feed_url}: {e}", exc_info=True)
+                continue
+
+        if not self.created_feeds:
+            logger.error("No feeds were created successfully. Aborting ingestion.")
+            return self._build_error_result("No feeds created")
+
+        logger.info(f"Successfully created {len(self.created_feeds)} feeds")
 
         # Step 3: Fetch articles from RSS feeds
-        logger.info(f"Fetching articles from {len(self.feed_urls)} RSS feeds")
+        logger.info(f"Fetching articles from {len(self.created_feeds)} RSS feeds")
         all_articles = []
         feed_stats = {}
 
-        for feed_url in self.feed_urls:
-            # Check if feed exists in API
-            if feed_url not in feed_url_to_id:
-                logger.error(f"Feed URL not found in API: {feed_url}")
-                logger.error(f"Please create feed via API first: POST /api/feeds with url={feed_url}")
-                feed_stats[feed_url] = 0
-                continue
-
-            feed_id = feed_url_to_id[feed_url]
+        for feed_info in self.created_feeds:
+            feed_url = feed_info['feedUrl']
+            feed_id = feed_info['feedId']
 
             try:
                 # Fetch articles
@@ -106,14 +137,15 @@ class IngestionWorker:
 
         # Step 5: Build result summary
         result = self._build_result(start_time, feed_stats, successful_count, failed_count)
-        
+
         logger.info("=" * 60)
         logger.info(f"Ingestion run completed in {result['duration_seconds']}s")
+        logger.info(f"Feeds created: {len(self.created_feeds)}")
         logger.info(f"Articles posted: {successful_count}/{len(all_articles)}")
         logger.info("=" * 60)
-        
+
         return result
-    
+
     def _build_result(
         self,
         start_time: datetime,
@@ -124,24 +156,26 @@ class IngestionWorker:
         """Build result summary dictionary."""
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
-        
+
         return {
             'status': 'success',
             'start_time': start_time.isoformat(),
             'end_time': end_time.isoformat(),
             'duration_seconds': round(duration, 2),
+            'feeds_created': len(self.created_feeds),
             'feeds_processed': len(self.feed_urls),
             'feed_stats': feed_stats,
             'articles_fetched': sum(feed_stats.values()),
             'articles_posted_successfully': successful,
             'articles_failed': failed
         }
-    
+
     def _build_error_result(self, error_message: str) -> dict:
         """Build error result dictionary."""
         return {
             'status': 'error',
             'error': error_message,
+            'feeds_created': len(self.created_feeds),
             'articles_posted_successfully': 0,
             'articles_failed': 0
         }

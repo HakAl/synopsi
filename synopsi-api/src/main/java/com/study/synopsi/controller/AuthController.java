@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {
@@ -18,36 +18,36 @@ public class AuthController {
     private final AuthService authService;
 
     /**
-     * POST /api/auth/register
+     * POST /api/v1/auth/register
      * Register a new user account
      */
     @PostMapping("/register")
     public ResponseEntity<LoginResponseDto> register(@Valid @RequestBody UserRequestDto request) {
-        log.info("POST /api/auth/register - Registering user: {}", request.getUsername());
+        log.info("POST /api/v1/auth/register - Registering user: {}", request.getUsername());
         LoginResponseDto response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
-     * POST /api/auth/login
+     * POST /api/v1/auth/login
      * Authenticate user and return JWT token
      */
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
-        log.info("POST /api/auth/login - Login attempt for: {}", request.getUsernameOrEmail());
+        log.info("POST /api/v1/auth/login - Login attempt for: {}", request.getUsernameOrEmail());
         LoginResponseDto response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * POST /api/auth/password-reset
+     * POST /api/v1/auth/password-reset
      * Request password reset (simplified - just validates email)
      */
     @PostMapping("/password-reset")
     public ResponseEntity<MessageResponse> requestPasswordReset(
             @Valid @RequestBody PasswordResetRequestDto request) {
         
-        log.info("POST /api/auth/password-reset - Request for: {}", request.getEmail());
+        log.info("POST /api/v1/auth/password-reset - Request for: {}", request.getEmail());
         authService.requestPasswordReset(request);
         
         return ResponseEntity.ok(new MessageResponse(
@@ -56,14 +56,14 @@ public class AuthController {
     }
 
     /**
-     * POST /api/auth/password-reset/confirm
+     * POST /api/v1/auth/password-reset/confirm
      * Confirm password reset with token and new password
      */
     @PostMapping("/password-reset/confirm")
     public ResponseEntity<MessageResponse> confirmPasswordReset(
             @Valid @RequestBody PasswordResetConfirmDto request) {
 
-        log.info("POST /api/auth/password-reset/confirm - Confirming password reset");
+        log.info("POST /api/v1/auth/password-reset/confirm - Confirming password reset");
         authService.confirmPasswordReset(request);
 
         return ResponseEntity.ok(new MessageResponse(

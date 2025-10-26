@@ -105,7 +105,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/topics")
+    @DisplayName("POST /api/v1/topics")
     class CreateTopicTests {
 
         @Test
@@ -113,7 +113,7 @@ class TopicControllerTest {
         void shouldCreateRootTopicSuccessfully() throws Exception {
             when(topicService.createTopic(any(TopicRequestDto.class))).thenReturn(rootTopicResponseDto);
 
-            mockMvc.perform(post("/api/topics")
+            mockMvc.perform(post("/api/v1/topics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isCreated())
@@ -138,7 +138,7 @@ class TopicControllerTest {
 
             when(topicService.createTopic(any(TopicRequestDto.class))).thenReturn(childTopicResponseDto);
 
-            mockMvc.perform(post("/api/topics")
+            mockMvc.perform(post("/api/v1/topics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(childRequest)))
                     .andExpect(status().isCreated())
@@ -155,7 +155,7 @@ class TopicControllerTest {
         void shouldReturn400WhenNameIsMissing() throws Exception {
             requestDto.setName(null);
 
-            mockMvc.perform(post("/api/topics")
+            mockMvc.perform(post("/api/v1/topics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -171,7 +171,7 @@ class TopicControllerTest {
         void shouldReturn400WhenSlugIsInvalid() throws Exception {
             requestDto.setSlug("Invalid Slug!");
 
-            mockMvc.perform(post("/api/topics")
+            mockMvc.perform(post("/api/v1/topics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -187,7 +187,7 @@ class TopicControllerTest {
             when(topicService.createTopic(any(TopicRequestDto.class)))
                     .thenThrow(new IllegalArgumentException("Topic with name 'Technology' already exists"));
 
-            mockMvc.perform(post("/api/topics")
+            mockMvc.perform(post("/api/v1/topics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -204,7 +204,7 @@ class TopicControllerTest {
             when(topicService.createTopic(any(TopicRequestDto.class)))
                     .thenThrow(new TopicNotFoundException(999L));
 
-            mockMvc.perform(post("/api/topics")
+            mockMvc.perform(post("/api/v1/topics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isNotFound())
@@ -220,7 +220,7 @@ class TopicControllerTest {
             when(topicService.createTopic(any(TopicRequestDto.class)))
                     .thenThrow(InvalidTopicHierarchyException.maxDepthExceeded(4));
 
-            mockMvc.perform(post("/api/topics")
+            mockMvc.perform(post("/api/v1/topics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -232,7 +232,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/topics/{id}")
+    @DisplayName("GET /api/v1/topics/{id}")
     class GetTopicByIdTests {
 
         @Test
@@ -240,7 +240,7 @@ class TopicControllerTest {
         void shouldGetTopicByIdSuccessfully() throws Exception {
             when(topicService.getTopicById(1L)).thenReturn(rootTopicResponseDto);
 
-            mockMvc.perform(get("/api/topics/1"))
+            mockMvc.perform(get("/api/v1/topics/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.name").value("Technology"))
@@ -254,7 +254,7 @@ class TopicControllerTest {
         void shouldGetTopicWithChildrenWhenIncludeChildrenTrue() throws Exception {
             when(topicService.getTopicByIdWithChildren(1L)).thenReturn(rootTopicResponseDto);
 
-            mockMvc.perform(get("/api/topics/1?includeChildren=true"))
+            mockMvc.perform(get("/api/v1/topics/1?includeChildren=true"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1));
 
@@ -268,7 +268,7 @@ class TopicControllerTest {
             when(topicService.getTopicById(999L))
                     .thenThrow(new TopicNotFoundException(999L));
 
-            mockMvc.perform(get("/api/topics/999"))
+            mockMvc.perform(get("/api/v1/topics/999"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.message").value("Topic not found with id: 999"));
@@ -278,7 +278,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/topics/by-slug/{slug}")
+    @DisplayName("GET /api/v1/topics/by-slug/{slug}")
     class GetTopicBySlugTests {
 
         @Test
@@ -286,7 +286,7 @@ class TopicControllerTest {
         void shouldGetTopicBySlugSuccessfully() throws Exception {
             when(topicService.getTopicBySlug("technology")).thenReturn(rootTopicResponseDto);
 
-            mockMvc.perform(get("/api/topics/by-slug/technology"))
+            mockMvc.perform(get("/api/v1/topics/by-slug/technology"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.slug").value("technology"))
                     .andExpect(jsonPath("$.name").value("Technology"));
@@ -300,7 +300,7 @@ class TopicControllerTest {
             when(topicService.getTopicBySlug("non-existent"))
                     .thenThrow(new TopicNotFoundException("non-existent"));
 
-            mockMvc.perform(get("/api/topics/by-slug/non-existent"))
+            mockMvc.perform(get("/api/v1/topics/by-slug/non-existent"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404));
 
@@ -309,7 +309,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/topics")
+    @DisplayName("GET /api/v1/topics")
     class GetAllTopicsTests {
 
         @Test
@@ -318,7 +318,7 @@ class TopicControllerTest {
             List<TopicResponseDto> topics = Arrays.asList(rootTopicResponseDto, childTopicResponseDto);
             when(topicService.getAllTopics()).thenReturn(topics);
 
-            mockMvc.perform(get("/api/topics"))
+            mockMvc.perform(get("/api/v1/topics"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(2)))
                     .andExpect(jsonPath("$[0].name").value("Technology"))
@@ -333,7 +333,7 @@ class TopicControllerTest {
             List<TopicResponseDto> topics = Arrays.asList(rootTopicResponseDto);
             when(topicService.getActiveTopics()).thenReturn(topics);
 
-            mockMvc.perform(get("/api/topics?active=true"))
+            mockMvc.perform(get("/api/v1/topics?active=true"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)));
 
@@ -347,7 +347,7 @@ class TopicControllerTest {
             List<TopicResponseDto> topics = Arrays.asList(rootTopicResponseDto);
             when(topicService.getRootTopics()).thenReturn(topics);
 
-            mockMvc.perform(get("/api/topics?rootOnly=true"))
+            mockMvc.perform(get("/api/v1/topics?rootOnly=true"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
                     .andExpect(jsonPath("$[0].depth").value(0));
@@ -358,7 +358,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/topics/root")
+    @DisplayName("GET /api/v1/topics/root")
     class GetRootTopicsTests {
 
         @Test
@@ -367,7 +367,7 @@ class TopicControllerTest {
             List<TopicResponseDto> topics = Arrays.asList(rootTopicResponseDto);
             when(topicService.getRootTopics()).thenReturn(topics);
 
-            mockMvc.perform(get("/api/topics/root"))
+            mockMvc.perform(get("/api/v1/topics/root"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
                     .andExpect(jsonPath("$[0].depth").value(0));
@@ -381,7 +381,7 @@ class TopicControllerTest {
             List<TopicResponseDto> topics = Arrays.asList(rootTopicResponseDto);
             when(topicService.getRootTopicsWithChildren()).thenReturn(topics);
 
-            mockMvc.perform(get("/api/topics/root?includeChildren=true"))
+            mockMvc.perform(get("/api/v1/topics/root?includeChildren=true"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)));
 
@@ -391,7 +391,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/topics/{parentId}/children")
+    @DisplayName("GET /api/v1/topics/{parentId}/children")
     class GetChildTopicsTests {
 
         @Test
@@ -400,7 +400,7 @@ class TopicControllerTest {
             List<TopicResponseDto> childTopics = Arrays.asList(childTopicResponseDto);
             when(topicService.getChildTopics(1L)).thenReturn(childTopics);
 
-            mockMvc.perform(get("/api/topics/1/children"))
+            mockMvc.perform(get("/api/v1/topics/1/children"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)))
                     .andExpect(jsonPath("$[0].parentTopicId").value(1))
@@ -415,7 +415,7 @@ class TopicControllerTest {
             when(topicService.getChildTopics(999L))
                     .thenThrow(new TopicNotFoundException(999L));
 
-            mockMvc.perform(get("/api/topics/999/children"))
+            mockMvc.perform(get("/api/v1/topics/999/children"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404));
 
@@ -424,7 +424,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT /api/topics/{id}")
+    @DisplayName("PUT /api/v1/topics/{id}")
     class UpdateTopicTests {
 
         @Test
@@ -432,7 +432,7 @@ class TopicControllerTest {
         void shouldUpdateTopicSuccessfully() throws Exception {
             when(topicService.updateTopic(eq(1L), any(TopicRequestDto.class))).thenReturn(rootTopicResponseDto);
 
-            mockMvc.perform(put("/api/topics/1")
+            mockMvc.perform(put("/api/v1/topics/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isOk())
@@ -448,7 +448,7 @@ class TopicControllerTest {
             when(topicService.updateTopic(eq(999L), any(TopicRequestDto.class)))
                     .thenThrow(new TopicNotFoundException(999L));
 
-            mockMvc.perform(put("/api/topics/999")
+            mockMvc.perform(put("/api/v1/topics/999")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isNotFound())
@@ -464,7 +464,7 @@ class TopicControllerTest {
             when(topicService.updateTopic(eq(1L), any(TopicRequestDto.class)))
                     .thenThrow(InvalidTopicHierarchyException.circularReference(1L, 2L));
 
-            mockMvc.perform(put("/api/topics/1")
+            mockMvc.perform(put("/api/v1/topics/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -476,7 +476,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /api/topics/{id}")
+    @DisplayName("PATCH /api/v1/topics/{id}")
     class PartialUpdateTopicTests {
 
         @Test
@@ -484,7 +484,7 @@ class TopicControllerTest {
         void shouldPartiallyUpdateTopicSuccessfully() throws Exception {
             when(topicService.updateTopic(eq(1L), any(TopicRequestDto.class))).thenReturn(rootTopicResponseDto);
 
-            mockMvc.perform(patch("/api/topics/1")
+            mockMvc.perform(patch("/api/v1/topics/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isOk())
@@ -495,7 +495,7 @@ class TopicControllerTest {
     }
 
     @Nested
-    @DisplayName("DELETE /api/topics/{id}")
+    @DisplayName("DELETE /api/v1/topics/{id}")
     class DeleteTopicTests {
 
         @Test
@@ -503,7 +503,7 @@ class TopicControllerTest {
         void shouldDeleteTopicSuccessfully() throws Exception {
             doNothing().when(topicService).deleteTopic(1L);
 
-            mockMvc.perform(delete("/api/topics/1"))
+            mockMvc.perform(delete("/api/v1/topics/1"))
                     .andExpect(status().isNoContent());
 
             verify(topicService).deleteTopic(1L);
@@ -514,7 +514,7 @@ class TopicControllerTest {
         void shouldReturn404WhenDeletingNonExistentTopic() throws Exception {
             doThrow(new TopicNotFoundException(999L)).when(topicService).deleteTopic(999L);
 
-            mockMvc.perform(delete("/api/topics/999"))
+            mockMvc.perform(delete("/api/v1/topics/999"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404));
 
@@ -527,7 +527,7 @@ class TopicControllerTest {
             doThrow(new IllegalArgumentException("Cannot delete topic with id 1 because it has 2 child topics"))
                     .when(topicService).deleteTopic(1L);
 
-            mockMvc.perform(delete("/api/topics/1"))
+            mockMvc.perform(delete("/api/v1/topics/1"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.status").value(400))
                     .andExpect(jsonPath("$.message", containsString("Cannot delete topic")));

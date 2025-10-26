@@ -95,7 +95,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/sources")
+    @DisplayName("POST /api/v1/sources")
     class CreateSourceTests {
 
         @Test
@@ -103,7 +103,7 @@ class SourceControllerTest {
         void shouldCreateSourceSuccessfully() throws Exception {
             when(sourceService.createSource(any(SourceRequestDto.class))).thenReturn(responseDto);
 
-            mockMvc.perform(post("/api/sources")
+            mockMvc.perform(post("/api/v1/sources")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isCreated())
@@ -121,7 +121,7 @@ class SourceControllerTest {
         void shouldReturn400WhenNameIsMissing() throws Exception {
             requestDto.setName(null);
 
-            mockMvc.perform(post("/api/sources")
+            mockMvc.perform(post("/api/v1/sources")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -137,7 +137,7 @@ class SourceControllerTest {
         void shouldReturn400WhenBaseUrlIsInvalid() throws Exception {
             requestDto.setBaseUrl("invalid-url");
 
-            mockMvc.perform(post("/api/sources")
+            mockMvc.perform(post("/api/v1/sources")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -152,7 +152,7 @@ class SourceControllerTest {
         void shouldReturn400WhenCredibilityScoreOutOfRange() throws Exception {
             requestDto.setCredibilityScore(1.5);
 
-            mockMvc.perform(post("/api/sources")
+            mockMvc.perform(post("/api/v1/sources")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -168,7 +168,7 @@ class SourceControllerTest {
             when(sourceService.createSource(any(SourceRequestDto.class)))
                     .thenThrow(new IllegalArgumentException("Source with name 'TechCrunch' already exists"));
 
-            mockMvc.perform(post("/api/sources")
+            mockMvc.perform(post("/api/v1/sources")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isBadRequest())
@@ -180,7 +180,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/sources/{id}")
+    @DisplayName("GET /api/v1/sources/{id}")
     class GetSourceByIdTests {
 
         @Test
@@ -188,7 +188,7 @@ class SourceControllerTest {
         void shouldGetSourceByIdSuccessfully() throws Exception {
             when(sourceService.getSourceById(1L)).thenReturn(responseDto);
 
-            mockMvc.perform(get("/api/sources/1"))
+            mockMvc.perform(get("/api/v1/sources/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.name").value("TechCrunch"))
@@ -203,7 +203,7 @@ class SourceControllerTest {
             when(sourceService.getSourceById(999L))
                     .thenThrow(new SourceNotFoundException(999L));
 
-            mockMvc.perform(get("/api/sources/999"))
+            mockMvc.perform(get("/api/v1/sources/999"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.message").value("Source not found with id: 999"));
@@ -213,7 +213,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/sources/{id}/with-feeds")
+    @DisplayName("GET /api/v1/sources/{id}/with-feeds")
     class GetSourceWithFeedsTests {
 
         @Test
@@ -222,7 +222,7 @@ class SourceControllerTest {
             responseDto.setFeedCount(3);
             when(sourceService.getSourceByIdWithFeeds(1L)).thenReturn(responseDto);
 
-            mockMvc.perform(get("/api/sources/1/with-feeds"))
+            mockMvc.perform(get("/api/v1/sources/1/with-feeds"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.feedCount").value(3));
@@ -232,7 +232,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/sources/by-name/{name}")
+    @DisplayName("GET /api/v1/sources/by-name/{name}")
     class GetSourceByNameTests {
 
         @Test
@@ -240,7 +240,7 @@ class SourceControllerTest {
         void shouldGetSourceByNameSuccessfully() throws Exception {
             when(sourceService.getSourceByName("TechCrunch")).thenReturn(responseDto);
 
-            mockMvc.perform(get("/api/sources/by-name/TechCrunch"))
+            mockMvc.perform(get("/api/v1/sources/by-name/TechCrunch"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name").value("TechCrunch"));
 
@@ -253,7 +253,7 @@ class SourceControllerTest {
             when(sourceService.getSourceByName("NonExistent"))
                     .thenThrow(new SourceNotFoundException("NonExistent"));
 
-            mockMvc.perform(get("/api/sources/by-name/NonExistent"))
+            mockMvc.perform(get("/api/v1/sources/by-name/NonExistent"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404));
 
@@ -262,7 +262,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/sources")
+    @DisplayName("GET /api/v1/sources")
     class GetAllSourcesTests {
 
         @Test
@@ -271,7 +271,7 @@ class SourceControllerTest {
             List<SourceResponseDto> sources = Arrays.asList(responseDto, responseDto);
             when(sourceService.getAllSources()).thenReturn(sources);
 
-            mockMvc.perform(get("/api/sources"))
+            mockMvc.perform(get("/api/v1/sources"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(2)))
                     .andExpect(jsonPath("$[0].name").value("TechCrunch"));
@@ -285,7 +285,7 @@ class SourceControllerTest {
             List<SourceResponseDto> sources = Arrays.asList(responseDto);
             when(sourceService.getActiveSources()).thenReturn(sources);
 
-            mockMvc.perform(get("/api/sources?active=true"))
+            mockMvc.perform(get("/api/v1/sources?active=true"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)));
 
@@ -299,7 +299,7 @@ class SourceControllerTest {
             List<SourceResponseDto> sources = Arrays.asList(responseDto);
             when(sourceService.getSourcesByType(Source.SourceType.NEWS)).thenReturn(sources);
 
-            mockMvc.perform(get("/api/sources?type=NEWS"))
+            mockMvc.perform(get("/api/v1/sources?type=NEWS"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)));
 
@@ -312,7 +312,7 @@ class SourceControllerTest {
             List<SourceResponseDto> sources = Arrays.asList(responseDto);
             when(sourceService.getAllSourcesWithFeeds()).thenReturn(sources);
 
-            mockMvc.perform(get("/api/sources?includeFeeds=true"))
+            mockMvc.perform(get("/api/v1/sources?includeFeeds=true"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)));
 
@@ -321,7 +321,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT /api/sources/{id}")
+    @DisplayName("PUT /api/v1/sources/{id}")
     class UpdateSourceTests {
 
         @Test
@@ -329,7 +329,7 @@ class SourceControllerTest {
         void shouldUpdateSourceSuccessfully() throws Exception {
             when(sourceService.updateSource(eq(1L), any(SourceRequestDto.class))).thenReturn(responseDto);
 
-            mockMvc.perform(put("/api/sources/1")
+            mockMvc.perform(put("/api/v1/sources/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isOk())
@@ -345,7 +345,7 @@ class SourceControllerTest {
             when(sourceService.updateSource(eq(999L), any(SourceRequestDto.class)))
                     .thenThrow(new SourceNotFoundException(999L));
 
-            mockMvc.perform(put("/api/sources/999")
+            mockMvc.perform(put("/api/v1/sources/999")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isNotFound())
@@ -356,7 +356,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /api/sources/{id}")
+    @DisplayName("PATCH /api/v1/sources/{id}")
     class PartialUpdateSourceTests {
 
         @Test
@@ -364,7 +364,7 @@ class SourceControllerTest {
         void shouldPartiallyUpdateSourceSuccessfully() throws Exception {
             when(sourceService.updateSource(eq(1L), any(SourceRequestDto.class))).thenReturn(responseDto);
 
-            mockMvc.perform(patch("/api/sources/1")
+            mockMvc.perform(patch("/api/v1/sources/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestDto)))
                     .andExpect(status().isOk())
@@ -375,7 +375,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /api/sources/{id}/activate")
+    @DisplayName("PATCH /api/v1/sources/{id}/activate")
     class ActivateSourceTests {
 
         @Test
@@ -383,7 +383,7 @@ class SourceControllerTest {
         void shouldActivateSourceSuccessfully() throws Exception {
             when(sourceService.activateSource(1L)).thenReturn(responseDto);
 
-            mockMvc.perform(patch("/api/sources/1/activate"))
+            mockMvc.perform(patch("/api/v1/sources/1/activate"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.isActive").value(true));
@@ -397,7 +397,7 @@ class SourceControllerTest {
             when(sourceService.activateSource(999L))
                     .thenThrow(new SourceNotFoundException(999L));
 
-            mockMvc.perform(patch("/api/sources/999/activate"))
+            mockMvc.perform(patch("/api/v1/sources/999/activate"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404));
 
@@ -406,7 +406,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /api/sources/{id}/deactivate")
+    @DisplayName("PATCH /api/v1/sources/{id}/deactivate")
     class DeactivateSourceTests {
 
         @Test
@@ -415,7 +415,7 @@ class SourceControllerTest {
             responseDto.setIsActive(false);
             when(sourceService.deactivateSource(1L)).thenReturn(responseDto);
 
-            mockMvc.perform(patch("/api/sources/1/deactivate"))
+            mockMvc.perform(patch("/api/v1/sources/1/deactivate"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.isActive").value(false));
@@ -425,7 +425,7 @@ class SourceControllerTest {
     }
 
     @Nested
-    @DisplayName("DELETE /api/sources/{id}")
+    @DisplayName("DELETE /api/v1/sources/{id}")
     class DeleteSourceTests {
 
         @Test
@@ -433,7 +433,7 @@ class SourceControllerTest {
         void shouldDeleteSourceSuccessfully() throws Exception {
             doNothing().when(sourceService).deleteSource(1L);
 
-            mockMvc.perform(delete("/api/sources/1"))
+            mockMvc.perform(delete("/api/v1/sources/1"))
                     .andExpect(status().isNoContent());
 
             verify(sourceService).deleteSource(1L);
@@ -444,7 +444,7 @@ class SourceControllerTest {
         void shouldReturn404WhenDeletingNonExistentSource() throws Exception {
             doThrow(new SourceNotFoundException(999L)).when(sourceService).deleteSource(999L);
 
-            mockMvc.perform(delete("/api/sources/999"))
+            mockMvc.perform(delete("/api/v1/sources/999"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404));
 

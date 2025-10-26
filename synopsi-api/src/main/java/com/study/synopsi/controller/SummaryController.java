@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/summaries")
+@RequestMapping("/api/v1/summaries")
 @RequiredArgsConstructor
 public class SummaryController {
 
@@ -22,7 +22,7 @@ public class SummaryController {
 
     /**
      * Request a new summary for an article
-     * POST /api/summaries/request
+     * POST /api/v1/summaries/request
      */
     @PostMapping("/request")
     public ResponseEntity<SummaryJob> requestSummary(
@@ -37,7 +37,7 @@ public class SummaryController {
 
     /**
      * Get summary for an article
-     * GET /api/summaries/article/{articleId}
+     * GET /api/v1/summaries/article/{articleId}
      */
     @GetMapping("/article/{articleId}")
     public ResponseEntity<Summary> getSummary(
@@ -53,7 +53,7 @@ public class SummaryController {
 
     /**
      * Get default summary for an article
-     * GET /api/summaries/article/{articleId}/default
+     * GET /api/v1/summaries/article/{articleId}/default
      */
     @GetMapping("/article/{articleId}/default")
     public ResponseEntity<Summary> getDefaultSummary(
@@ -68,7 +68,7 @@ public class SummaryController {
 
     /**
      * Get summary by ID
-     * GET /api/summaries/{id}
+     * GET /api/v1/summaries/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<Summary> getSummaryById(@PathVariable Long id) {
@@ -78,7 +78,7 @@ public class SummaryController {
 
     /**
      * Get all summaries for an article
-     * GET /api/summaries/article/{articleId}/all
+     * GET /api/v1/summaries/article/{articleId}/all
      */
     @GetMapping("/article/{articleId}/all")
     public ResponseEntity<List<Summary>> getArticleSummaries(@PathVariable Long articleId) {
@@ -88,7 +88,7 @@ public class SummaryController {
 
     /**
      * Get all summaries for a user (paginated)
-     * GET /api/summaries/user/{userId}
+     * GET /api/v1/summaries/user/{userId}
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<Page<Summary>> getUserSummaries(
@@ -101,7 +101,7 @@ public class SummaryController {
 
     /**
      * Regenerate a summary
-     * POST /api/summaries/{id}/regenerate
+     * POST /api/v1/summaries/{id}/regenerate
      */
     @PostMapping("/{id}/regenerate")
     public ResponseEntity<SummaryJob> regenerateSummary(@PathVariable Long id) {
@@ -111,7 +111,7 @@ public class SummaryController {
 
     /**
      * Get job status by ID
-     * GET /api/summaries/jobs/{jobId}
+     * GET /api/v1/summaries/jobs/{jobId}
      */
     @GetMapping("/jobs/{jobId}")
     public ResponseEntity<SummaryJob> getJobById(@PathVariable Long jobId) {
@@ -121,7 +121,7 @@ public class SummaryController {
 
     /**
      * Get all queued jobs
-     * GET /api/summaries/jobs/queued
+     * GET /api/v1/summaries/jobs/queued
      */
     @GetMapping("/jobs/queued")
     public ResponseEntity<List<SummaryJob>> getQueuedJobs() {
@@ -131,7 +131,7 @@ public class SummaryController {
 
     /**
      * Retry a failed job
-     * POST /api/summaries/jobs/{jobId}/retry
+     * POST /api/v1/summaries/jobs/{jobId}/retry
      */
     @PostMapping("/jobs/{jobId}/retry")
     public ResponseEntity<SummaryJob> retryFailedJob(@PathVariable Long jobId) {
@@ -141,7 +141,7 @@ public class SummaryController {
 
     /**
      * Get job statistics
-     * GET /api/summaries/jobs/statistics
+     * GET /api/v1/summaries/jobs/statistics
      */
     @GetMapping("/jobs/statistics")
     public ResponseEntity<SummaryService.JobStatistics> getJobStatistics() {
@@ -151,7 +151,7 @@ public class SummaryController {
 
     /**
      * Check if summary exists
-     * GET /api/summaries/exists
+     * GET /api/v1/summaries/exists
      */
     @GetMapping("/exists")
     public ResponseEntity<Boolean> summaryExists(
@@ -165,7 +165,7 @@ public class SummaryController {
 
     /**
      * Worker callback endpoint (called by Python worker when summary is complete)
-     * POST /api/summaries/callback/complete
+     * POST /api/v1/summaries/callback/complete
      */
     @PostMapping("/callback/complete")
     public ResponseEntity<Void> handleWorkerCallback(
@@ -180,7 +180,7 @@ public class SummaryController {
 
     /**
      * Worker failure callback endpoint
-     * POST /api/summaries/callback/failure
+     * POST /api/v1/summaries/callback/failure
      */
     @PostMapping("/callback/failure")
     public ResponseEntity<Void> handleWorkerFailure(

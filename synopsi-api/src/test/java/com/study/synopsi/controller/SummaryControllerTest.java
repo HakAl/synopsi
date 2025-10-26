@@ -64,7 +64,7 @@ public class SummaryControllerTest {
         when(summaryService.requestSummary(anyLong(), any(), any(Summary.SummaryType.class), any(Summary.SummaryLength.class)))
                 .thenReturn(job);
 
-        mockMvc.perform(post("/api/summaries/request")
+        mockMvc.perform(post("/api/v1/summaries/request")
                         .param("articleId", "1")
                         .param("userId", "1")
                         .param("summaryType", "BRIEF")
@@ -81,7 +81,7 @@ public class SummaryControllerTest {
         when(summaryService.getSummary(anyLong(), any(), any(Summary.SummaryType.class)))
                 .thenReturn(Optional.of(summary));
 
-        mockMvc.perform(get("/api/summaries/article/1")
+        mockMvc.perform(get("/api/v1/summaries/article/1")
                         .param("userId", "1")
                         .param("summaryType", "BRIEF"))
                 .andExpect(status().isOk())
@@ -93,7 +93,7 @@ public class SummaryControllerTest {
         when(summaryService.getSummary(anyLong(), any(), any(Summary.SummaryType.class)))
                 .thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/summaries/article/1")
+        mockMvc.perform(get("/api/v1/summaries/article/1")
                         .param("userId", "1")
                         .param("summaryType", "BRIEF"))
                 .andExpect(status().isNotFound());
@@ -106,7 +106,7 @@ public class SummaryControllerTest {
 
         when(summaryService.getDefaultSummary(1L, Summary.SummaryType.BRIEF)).thenReturn(Optional.of(summary));
 
-        mockMvc.perform(get("/api/summaries/article/1/default")
+        mockMvc.perform(get("/api/v1/summaries/article/1/default")
                         .param("summaryType", "BRIEF"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
@@ -119,7 +119,7 @@ public class SummaryControllerTest {
 
         when(summaryService.getSummaryById(1L)).thenReturn(summary);
 
-        mockMvc.perform(get("/api/summaries/1"))
+        mockMvc.perform(get("/api/v1/summaries/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
@@ -132,7 +132,7 @@ public class SummaryControllerTest {
 
         when(summaryService.getArticleSummaries(1L)).thenReturn(summaries);
 
-        mockMvc.perform(get("/api/summaries/article/1/all"))
+        mockMvc.perform(get("/api/v1/summaries/article/1/all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1L));
     }
@@ -146,7 +146,7 @@ public class SummaryControllerTest {
         when(summaryService.getUserSummaries(anyLong(), any(PageRequest.class)))
                 .thenReturn(pagedSummaries);
 
-        mockMvc.perform(get("/api/summaries/user/1")
+        mockMvc.perform(get("/api/v1/summaries/user/1")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -160,7 +160,7 @@ public class SummaryControllerTest {
 
         when(summaryService.regenerateSummary(1L)).thenReturn(job);
 
-        mockMvc.perform(post("/api/summaries/1/regenerate"))
+        mockMvc.perform(post("/api/v1/summaries/1/regenerate"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").value(2L));
     }
@@ -172,7 +172,7 @@ public class SummaryControllerTest {
 
         when(summaryService.getJobById(1L)).thenReturn(job);
 
-        mockMvc.perform(get("/api/summaries/jobs/1"))
+        mockMvc.perform(get("/api/v1/summaries/jobs/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
@@ -185,7 +185,7 @@ public class SummaryControllerTest {
 
         when(summaryService.getQueuedJobs()).thenReturn(jobs);
 
-        mockMvc.perform(get("/api/summaries/jobs/queued"))
+        mockMvc.perform(get("/api/v1/summaries/jobs/queued"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1L));
     }
@@ -197,7 +197,7 @@ public class SummaryControllerTest {
 
         when(summaryService.retryFailedJob(1L)).thenReturn(job);
 
-        mockMvc.perform(post("/api/summaries/jobs/1/retry"))
+        mockMvc.perform(post("/api/v1/summaries/jobs/1/retry"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
@@ -206,7 +206,7 @@ public class SummaryControllerTest {
     void summaryExists_shouldReturnBoolean() throws Exception {
         when(summaryService.summaryExists(1L, 1L, Summary.SummaryType.BRIEF)).thenReturn(true);
 
-        mockMvc.perform(get("/api/summaries/exists")
+        mockMvc.perform(get("/api/v1/summaries/exists")
                         .param("articleId", "1")
                         .param("userId", "1")
                         .param("summaryType", "BRIEF"))
@@ -218,7 +218,7 @@ public class SummaryControllerTest {
     void handleWorkerCallback_shouldReturnOk() throws Exception {
         doNothing().when(summaryService).handleWorkerCallback(anyLong(), any(), any(), any());
 
-        mockMvc.perform(post("/api/summaries/callback/complete")
+        mockMvc.perform(post("/api/v1/summaries/callback/complete")
                         .param("jobId", "1")
                         .param("summaryText", "This is a summary.")
                         .param("modelVersion", "v1")
@@ -230,7 +230,7 @@ public class SummaryControllerTest {
     void handleWorkerFailure_shouldReturnOk() throws Exception {
         doNothing().when(summaryService).handleWorkerFailure(anyLong(), any());
 
-        mockMvc.perform(post("/api/summaries/callback/failure")
+        mockMvc.perform(post("/api/v1/summaries/callback/failure")
                         .param("jobId", "1")
                         .param("errorMessage", "An error occurred."))
                 .andExpect(status().isOk());

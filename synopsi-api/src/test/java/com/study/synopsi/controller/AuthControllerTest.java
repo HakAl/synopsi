@@ -82,7 +82,7 @@ class AuthControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/auth/register")
+    @DisplayName("POST /api/v1/auth/register")
     class RegisterTests {
 
         @Test
@@ -90,7 +90,7 @@ class AuthControllerTest {
         void shouldRegisterSuccessfully() throws Exception {
             when(authService.register(any(UserRequestDto.class))).thenReturn(loginResponse);
 
-            mockMvc.perform(post("/api/auth/register")
+            mockMvc.perform(post("/api/v1/auth/register")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(registerRequest)))
                     .andExpect(status().isCreated())
@@ -103,7 +103,7 @@ class AuthControllerTest {
         void shouldReturn400WhenUsernameMissing() throws Exception {
             registerRequest.setUsername(null);
 
-            mockMvc.perform(post("/api/auth/register")
+            mockMvc.perform(post("/api/v1/auth/register")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(registerRequest)))
                     .andExpect(status().isBadRequest());
@@ -111,7 +111,7 @@ class AuthControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/auth/login")
+    @DisplayName("POST /api/v1/auth/login")
     class LoginTests {
 
         @Test
@@ -119,7 +119,7 @@ class AuthControllerTest {
         void shouldLoginSuccessfully() throws Exception {
             when(authService.login(any(LoginRequestDto.class))).thenReturn(loginResponse);
 
-            mockMvc.perform(post("/api/auth/login")
+            mockMvc.perform(post("/api/v1/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isOk())
@@ -131,7 +131,7 @@ class AuthControllerTest {
         void shouldReturn400WhenPasswordMissing() throws Exception {
             loginRequest.setPassword(null);
 
-            mockMvc.perform(post("/api/auth/login")
+            mockMvc.perform(post("/api/v1/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isBadRequest());
@@ -139,7 +139,7 @@ class AuthControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/auth/password-reset")
+    @DisplayName("POST /api/v1/auth/password-reset")
     class PasswordResetTests {
 
         @Test
@@ -147,7 +147,7 @@ class AuthControllerTest {
         void shouldAcceptPasswordResetRequest() throws Exception {
             doNothing().when(authService).requestPasswordReset(any(PasswordResetRequestDto.class));
 
-            mockMvc.perform(post("/api/auth/password-reset")
+            mockMvc.perform(post("/api/v1/auth/password-reset")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(passwordResetRequest)))
                     .andExpect(status().isOk())
@@ -159,7 +159,7 @@ class AuthControllerTest {
         void shouldReturn400WhenEmailInvalid() throws Exception {
             passwordResetRequest.setEmail("not-an-email");
 
-            mockMvc.perform(post("/api/auth/password-reset")
+            mockMvc.perform(post("/api/v1/auth/password-reset")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(passwordResetRequest)))
                     .andExpect(status().isBadRequest());

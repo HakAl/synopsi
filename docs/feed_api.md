@@ -1,22 +1,22 @@
 ### Worker Gets Feeds to Crawl
 
-```GET http://localhost:8080/api/feeds/needs-crawl```
+```GET http://localhost:8080/api/v1/feeds/needs-crawl```
 
 ### Worker Reports Success
 
-```POST http://localhost:8080/api/feeds/123/crawl/success```
+```POST http://localhost:8080/api/v1/feeds/123/crawl/success```
 
 ### Worker Reports Failure
 
 ```
-POST http://localhost:8080/api/feeds/123/crawl/failure
+POST http://localhost:8080/api/v1/feeds/123/crawl/failure
 Content-Type: application/json
 
 {
 "errorMessage": "Connection timeout after 30 seconds"
 }
 Create a Feed
-bashPOST http://localhost:8080/api/feeds
+bashPOST http://localhost:8080/api/v1/feeds
 Content-Type: application/json
 
 {
@@ -32,4 +32,4 @@ Content-Type: application/json
 
 ### Get Filtered Feeds
 
-```GET http://localhost:8080/api/feeds?sourceId=1&isActive=true&minPriori```
+```GET http://localhost:8080/api/v1/feeds?sourceId=1&isActive=true&minPriori```

@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ class SynopsiAPIClient:
         if not self.username or not self.password:
             raise ValueError("Username and password required for login")
 
-        url = f"{self.base_url}/api/auth/login"
+        url = f"{self.base_url}/api/v1/auth/login"
 
         try:
             logger.info(f"Logging in as {self.username}")
@@ -165,6 +166,139 @@ class SynopsiAPIClient:
 
         return response
 
+    def _extract_domain_from_url(self, url: str) -> str:
+        """
+        Extract domain from URL for source name.
+
+        Args:
+            url: Full URL
+
+        Returns:
+            Domain name (e.g., 'example.com')
+        """
+        parsed = urlparse(url)
+        return parsed.netloc
+
+    def _extract_base_url(self, url: str) -> str:
+        """
+        Extract base URL (scheme + netloc) from full URL.
+
+        Args:
+            url: Full URL
+
+        Returns:
+            Base URL (e.g., 'https://example.com')
+        """
+        parsed = urlparse(url)
+        return f"{parsed.scheme}://{parsed.netloc}"
+
+    def create_source(self, feed_url: str) -> Optional[Dict]:
+        """
+        Create a new source from a feed URL.
+
+        Args:
+            feed_url: RSS feed URL
+
+        Returns:
+            Created source dictionary with id
+        """
+        url = f"{self.base_url}/api/v1/sources"
+
+        domain = self._extract_domain_from_url(feed_url)
+        base_url = self._extract_base_url(feed_url)
+
+        source_data = {
+            'name': domain,
+            'baseUrl': base_url,
+            'isActive': True,
+            'sourceType': 'RSS'
+        }
+
+        try:
+            logger.info(f"Creating source for domain: {domain}")
+
+            response = self._make_request(
+                'POST',
+                url,
+                json=source_data,
+                timeout=self.timeout
+            )
+
+            if response.status_code == 201:
+                created_source = response.json()
+                logger.info(f"Successfully created source ID: {created_source.get('id')} - {domain}")
+                return created_source
+            elif response.status_code == 400:
+                logger.error(f"Bad request creating source: {response.text}")
+                raise ValueError(f"Invalid source data: {response.text}")
+            else:
+                logger.error(f"Failed to create source: {response.status_code} - {response.text}")
+                response.raise_for_status()
+
+        except requests.Timeout:
+            logger.error(f"Timeout creating source for {domain}")
+            raise
+        except requests.ConnectionError as e:
+            logger.error(f"Connection error creating source: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error creating source: {e}", exc_info=True)
+            raise
+
+    def create_feed(self, feed_url: str, source_id: int) -> Optional[Dict]:
+        """
+        Create a new feed from a URL with specified source ID.
+
+        Args:
+            feed_url: RSS feed URL
+            source_id: ID of the source this feed belongs to
+
+        Returns:
+            Created feed dictionary with id
+        """
+        url = f"{self.base_url}/api/v1/feeds"
+
+        feed_data = {
+            'sourceId': source_id,
+            'feedUrl': feed_url,
+            'feedType': 'RSS',
+            'topicId': None,
+            'crawlFrequencyMinutes': 60,
+            'isActive': True,
+            'priority': 10
+        }
+
+        try:
+            logger.info(f"Creating feed for URL: {feed_url} (sourceId: {source_id})")
+
+            response = self._make_request(
+                'POST',
+                url,
+                json=feed_data,
+                timeout=self.timeout
+            )
+
+            if response.status_code == 201:
+                created_feed = response.json()
+                logger.info(f"Successfully created feed ID: {created_feed.get('id')}")
+                return created_feed
+            elif response.status_code == 400:
+                logger.error(f"Bad request creating feed: {response.text}")
+                raise ValueError(f"Invalid feed data: {response.text}")
+            else:
+                logger.error(f"Failed to create feed: {response.status_code} - {response.text}")
+                response.raise_for_status()
+
+        except requests.Timeout:
+            logger.error(f"Timeout creating feed for {feed_url}")
+            raise
+        except requests.ConnectionError as e:
+            logger.error(f"Connection error creating feed: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error creating feed: {e}", exc_info=True)
+            raise
+
     def get_all_feeds(self) -> List[Dict]:
         """
         Get all feeds from API.
@@ -172,7 +306,7 @@ class SynopsiAPIClient:
         Returns:
             List of feed dictionaries
         """
-        url = f"{self.base_url}/api/feeds/all"
+        url = f"{self.base_url}/api/v1/feeds/all"
 
         try:
             response = self._make_request('GET', url, timeout=self.timeout)

@@ -106,7 +106,7 @@ class FeedControllerTest {
     // ========================================================================
 
     @Nested
-    @DisplayName("GET /api/feeds - Get Feeds Tests")
+    @DisplayName("GET /api/v1/feeds - Get Feeds Tests")
     class GetFeedsTests {
 
         @Test
@@ -125,7 +125,7 @@ class FeedControllerTest {
                     .thenReturn(pagedResponse);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds")
+            mockMvc.perform(get("/api/v1/feeds")
                             .param("sourceId", "1")
                             .param("isActive", "true")
                             .param("page", "0")
@@ -154,7 +154,7 @@ class FeedControllerTest {
                     .thenReturn(pagedResponse);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds")
+            mockMvc.perform(get("/api/v1/feeds")
                             .param("sourceId", "1")
                             .param("feedType", "RSS")
                             .param("isActive", "true")
@@ -172,7 +172,7 @@ class FeedControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/feeds/{id} - Get Feed by ID Tests")
+    @DisplayName("GET /api/v1/feeds/{id} - Get Feed by ID Tests")
     class GetFeedByIdTests {
 
         @Test
@@ -182,7 +182,7 @@ class FeedControllerTest {
             when(feedService.getFeedById(1L)).thenReturn(testFeedResponseDto);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/1")
+            mockMvc.perform(get("/api/v1/feeds/1")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -201,7 +201,7 @@ class FeedControllerTest {
             when(feedService.getFeedById(999L)).thenThrow(new FeedNotFoundException(999L));
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/999")
+            mockMvc.perform(get("/api/v1/feeds/999")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
 
@@ -210,7 +210,7 @@ class FeedControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/feeds - Create Feed Tests")
+    @DisplayName("POST /api/v1/feeds - Create Feed Tests")
     class CreateFeedTests {
 
         @Test
@@ -220,7 +220,7 @@ class FeedControllerTest {
             when(feedService.createFeed(any(FeedRequestDto.class))).thenReturn(testFeedResponseDto);
 
             // When/Then
-            mockMvc.perform(post("/api/feeds")
+            mockMvc.perform(post("/api/v1/feeds")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andDo(print())
@@ -240,7 +240,7 @@ class FeedControllerTest {
             // Note: @Pattern validation on DTO will catch this before service is called
 
             // When/Then
-            mockMvc.perform(post("/api/feeds")
+            mockMvc.perform(post("/api/v1/feeds")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andExpect(status().isBadRequest());
@@ -257,7 +257,7 @@ class FeedControllerTest {
                     .thenThrow(new InvalidFeedException("Feed with URL already exists"));
 
             // When/Then
-            mockMvc.perform(post("/api/feeds")
+            mockMvc.perform(post("/api/v1/feeds")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andExpect(status().isBadRequest());
@@ -274,7 +274,7 @@ class FeedControllerTest {
                     .thenThrow(new InvalidFeedException("Priority must be between 1 and 10"));
 
             // When/Then
-            mockMvc.perform(post("/api/feeds")
+            mockMvc.perform(post("/api/v1/feeds")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andExpect(status().isBadRequest());
@@ -282,7 +282,7 @@ class FeedControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT /api/feeds/{id} - Update Feed Tests")
+    @DisplayName("PUT /api/v1/feeds/{id} - Update Feed Tests")
     class UpdateFeedTests {
 
         @Test
@@ -293,7 +293,7 @@ class FeedControllerTest {
                     .thenReturn(testFeedResponseDto);
 
             // When/Then
-            mockMvc.perform(put("/api/feeds/1")
+            mockMvc.perform(put("/api/v1/feeds/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andDo(print())
@@ -312,7 +312,7 @@ class FeedControllerTest {
                     .thenThrow(new FeedNotFoundException(999L));
 
             // When/Then
-            mockMvc.perform(put("/api/feeds/999")
+            mockMvc.perform(put("/api/v1/feeds/999")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andExpect(status().isNotFound());
@@ -322,7 +322,7 @@ class FeedControllerTest {
     }
 
     @Nested
-    @DisplayName("DELETE /api/feeds/{id} - Delete Feed Tests")
+    @DisplayName("DELETE /api/v1/feeds/{id} - Delete Feed Tests")
     class DeleteFeedTests {
 
         @Test
@@ -332,7 +332,7 @@ class FeedControllerTest {
             doNothing().when(feedService).deleteFeed(1L);
 
             // When/Then
-            mockMvc.perform(delete("/api/feeds/1")
+            mockMvc.perform(delete("/api/v1/feeds/1")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isNoContent());
@@ -347,7 +347,7 @@ class FeedControllerTest {
             doThrow(new FeedNotFoundException(999L)).when(feedService).deleteFeed(999L);
 
             // When/Then
-            mockMvc.perform(delete("/api/feeds/999")
+            mockMvc.perform(delete("/api/v1/feeds/999")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
 
@@ -371,7 +371,7 @@ class FeedControllerTest {
             when(feedService.getFeedsBySourceId(1L)).thenReturn(feeds);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/source/1")
+            mockMvc.perform(get("/api/v1/feeds/source/1")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -389,7 +389,7 @@ class FeedControllerTest {
             when(feedService.getActiveFeeds()).thenReturn(feeds);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/active")
+            mockMvc.perform(get("/api/v1/feeds/active")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -407,7 +407,7 @@ class FeedControllerTest {
             when(feedService.getFeedsNeedingCrawl()).thenReturn(feeds);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/needs-crawl")
+            mockMvc.perform(get("/api/v1/feeds/needs-crawl")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -424,7 +424,7 @@ class FeedControllerTest {
             when(feedService.getFeedsByPriorityRange(5, 10)).thenReturn(feeds);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/priority")
+            mockMvc.perform(get("/api/v1/feeds/priority")
                             .param("min", "5")
                             .param("max", "10")
                             .contentType(MediaType.APPLICATION_JSON))
@@ -443,7 +443,7 @@ class FeedControllerTest {
             when(feedService.getFeedsByType(Feed.FeedType.RSS)).thenReturn(feeds);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/type/RSS")
+            mockMvc.perform(get("/api/v1/feeds/type/RSS")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -461,7 +461,7 @@ class FeedControllerTest {
             when(feedService.getAllFeeds()).thenReturn(feeds);
 
             // When/Then
-            mockMvc.perform(get("/api/feeds/all")
+            mockMvc.perform(get("/api/v1/feeds/all")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$", hasSize(1)));
@@ -486,7 +486,7 @@ class FeedControllerTest {
             when(feedService.activateFeed(1L)).thenReturn(testFeedResponseDto);
 
             // When/Then
-            mockMvc.perform(patch("/api/feeds/1/activate")
+            mockMvc.perform(patch("/api/v1/feeds/1/activate")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -504,7 +504,7 @@ class FeedControllerTest {
             when(feedService.deactivateFeed(1L)).thenReturn(testFeedResponseDto);
 
             // When/Then
-            mockMvc.perform(patch("/api/feeds/1/deactivate")
+            mockMvc.perform(patch("/api/v1/feeds/1/deactivate")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -521,7 +521,7 @@ class FeedControllerTest {
             when(feedService.activateFeed(999L)).thenThrow(new FeedNotFoundException(999L));
 
             // When/Then
-            mockMvc.perform(patch("/api/feeds/999/activate")
+            mockMvc.perform(patch("/api/v1/feeds/999/activate")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
 
@@ -536,7 +536,7 @@ class FeedControllerTest {
             doNothing().when(feedService).bulkActivateFeeds(feedIds);
 
             // When/Then
-            mockMvc.perform(post("/api/feeds/bulk/activate")
+            mockMvc.perform(post("/api/v1/feeds/bulk/activate")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(feedIds)))
                     .andDo(print())
@@ -553,7 +553,7 @@ class FeedControllerTest {
             doNothing().when(feedService).bulkDeactivateFeeds(feedIds);
 
             // When/Then
-            mockMvc.perform(post("/api/feeds/bulk/deactivate")
+            mockMvc.perform(post("/api/v1/feeds/bulk/deactivate")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(feedIds)))
                     .andDo(print())
@@ -578,7 +578,7 @@ class FeedControllerTest {
             doNothing().when(feedService).recordSuccessfulCrawl(1L);
 
             // When/Then
-            mockMvc.perform(post("/api/feeds/1/crawl/success")
+            mockMvc.perform(post("/api/v1/feeds/1/crawl/success")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk());
@@ -596,7 +596,7 @@ class FeedControllerTest {
             doNothing().when(feedService).recordFailedCrawl(1L, errorMessage);
 
             // When/Then
-            mockMvc.perform(post("/api/feeds/1/crawl/failure")
+            mockMvc.perform(post("/api/v1/feeds/1/crawl/failure")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
@@ -612,7 +612,7 @@ class FeedControllerTest {
             doThrow(new FeedNotFoundException(999L)).when(feedService).recordSuccessfulCrawl(999L);
 
             // When/Then
-            mockMvc.perform(post("/api/feeds/999/crawl/success")
+            mockMvc.perform(post("/api/v1/feeds/999/crawl/success")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
 
@@ -629,7 +629,7 @@ class FeedControllerTest {
             doNothing().when(feedService).recordFailedCrawl(1L, errorMessage);
 
             // When/Then
-            mockMvc.perform(post("/api/feeds/1/crawl/failure")
+            mockMvc.perform(post("/api/v1/feeds/1/crawl/failure")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk());

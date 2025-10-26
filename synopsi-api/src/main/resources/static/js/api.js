@@ -49,7 +49,7 @@ const httpClient = async (url, options = {}) => {
     };
 
     // Add Authorization header if token exists and not a public endpoint
-    if (token && !url.includes('/api/auth/')) {
+    if (token && !url.includes('/api/v1/auth/')) {
         config.headers['Authorization'] = `Bearer ${token}`;
     }
 
@@ -97,7 +97,7 @@ const httpClient = async (url, options = {}) => {
 const api = {
     // ==================== Auth ====================
     login: async (usernameOrEmail, password) => {
-        const response = await httpClient('/api/auth/login', {
+        const response = await httpClient('/api/v1/auth/login', {
             method: 'POST',
             body: JSON.stringify({ usernameOrEmail, password })
         });
@@ -114,7 +114,7 @@ const api = {
     },
 
     register: async (username, email, password) => {
-        const response = await httpClient('/api/auth/register', {
+        const response = await httpClient('/api/v1/auth/register', {
             method: 'POST',
             body: JSON.stringify({ username, email, password })
         });
@@ -136,14 +136,14 @@ const api = {
     },
 
     requestPasswordReset: async (email) => {
-        return await httpClient('/api/auth/password-reset', {
+        return await httpClient('/api/v1/auth/password-reset', {
             method: 'POST',
             body: JSON.stringify({ email })
         });
     },
 
     confirmPasswordReset: async (token, newPassword) => {
-        return await httpClient('/api/auth/password-reset/confirm', {
+        return await httpClient('/api/v1/auth/password-reset/confirm', {
             method: 'POST',
             body: JSON.stringify({ token, newPassword })
         });
@@ -152,41 +152,41 @@ const api = {
     // ==================== Topics ====================
     getAllTopics: async (params = {}) => {
         const query = new URLSearchParams(params).toString();
-        return await httpClient(`/api/topics${query ? '?' + query : ''}`);
+        return await httpClient(`/api/v1/topics${query ? '?' + query : ''}`);
     },
 
     getTopicById: async (id, includeChildren = false) => {
-        return await httpClient(`/api/topics/${id}?includeChildren=${includeChildren}`);
+        return await httpClient(`/api/v1/topics/${id}?includeChildren=${includeChildren}`);
     },
 
     getTopicBySlug: async (slug) => {
-        return await httpClient(`/api/topics/by-slug/${slug}`);
+        return await httpClient(`/api/v1/topics/by-slug/${slug}`);
     },
 
     getRootTopics: async (includeChildren = false) => {
-        return await httpClient(`/api/topics/root?includeChildren=${includeChildren}`);
+        return await httpClient(`/api/v1/topics/root?includeChildren=${includeChildren}`);
     },
 
     getChildTopics: async (parentId) => {
-        return await httpClient(`/api/topics/${parentId}/children`);
+        return await httpClient(`/api/v1/topics/${parentId}/children`);
     },
 
     createTopic: async (topicData) => {
-        return await httpClient('/api/topics', {
+        return await httpClient('/api/v1/topics', {
             method: 'POST',
             body: JSON.stringify(topicData)
         });
     },
 
     updateTopic: async (id, topicData) => {
-        return await httpClient(`/api/topics/${id}`, {
+        return await httpClient(`/api/v1/topics/${id}`, {
             method: 'PUT',
             body: JSON.stringify(topicData)
         });
     },
 
     deleteTopic: async (id) => {
-        return await httpClient(`/api/topics/${id}`, {
+        return await httpClient(`/api/v1/topics/${id}`, {
             method: 'DELETE'
         });
     },
@@ -194,49 +194,49 @@ const api = {
     // ==================== Sources ====================
     getAllSources: async (params = {}) => {
         const query = new URLSearchParams(params).toString();
-        return await httpClient(`/api/sources${query ? '?' + query : ''}`);
+        return await httpClient(`/api/v1/sources${query ? '?' + query : ''}`);
     },
 
     getSourceById: async (id) => {
-        return await httpClient(`/api/sources/${id}`);
+        return await httpClient(`/api/v1/sources/${id}`);
     },
 
     getSourceByIdWithFeeds: async (id) => {
-        return await httpClient(`/api/sources/${id}/with-feeds`);
+        return await httpClient(`/api/v1/sources/${id}/with-feeds`);
     },
 
     getSourceByName: async (name) => {
-        return await httpClient(`/api/sources/by-name/${name}`);
+        return await httpClient(`/api/v1/sources/by-name/${name}`);
     },
 
     createSource: async (sourceData) => {
-        return await httpClient('/api/sources', {
+        return await httpClient('/api/v1/sources', {
             method: 'POST',
             body: JSON.stringify(sourceData)
         });
     },
 
     updateSource: async (id, sourceData) => {
-        return await httpClient(`/api/sources/${id}`, {
+        return await httpClient(`/api/v1/sources/${id}`, {
             method: 'PUT',
             body: JSON.stringify(sourceData)
         });
     },
 
     activateSource: async (id) => {
-        return await httpClient(`/api/sources/${id}/activate`, {
+        return await httpClient(`/api/v1/sources/${id}/activate`, {
             method: 'PATCH'
         });
     },
 
     deactivateSource: async (id) => {
-        return await httpClient(`/api/sources/${id}/deactivate`, {
+        return await httpClient(`/api/v1/sources/${id}/deactivate`, {
             method: 'PATCH'
         });
     },
 
     deleteSource: async (id) => {
-        return await httpClient(`/api/sources/${id}`, {
+        return await httpClient(`/api/v1/sources/${id}`, {
             method: 'DELETE'
         });
     },

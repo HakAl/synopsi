@@ -16,11 +16,11 @@
 ┌─────────────────────────────────────────────────────────────┐
 │ SUMMARIZATION WORKER (CronJob: every 10 min)                │
 ├─────────────────────────────────────────────────────────────┤
-│ 1. GET /api/summaries/jobs/queued                           │
+│ 1. GET /api/v1/summaries/jobs/queued                           │
 │ 2. For each job:                                            │
 │    a. GET /api/v1/articles/{articleId}                      │
 │    b. Generate summary with T5                              │
-│    c. POST /api/summaries/callback/complete                 │
+│    c. POST /api/v1/summaries/callback/complete                 │
 │       ↓                                                      │
 │       SummaryService.handleWorkerCallback()                 │
 │       ├─ Save Summary                                       │

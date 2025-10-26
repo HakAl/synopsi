@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/topics")
+@RequestMapping("/api/v1/topics")
 @RequiredArgsConstructor
 @Slf4j
 public class TopicController {
@@ -22,24 +22,24 @@ public class TopicController {
 
     /**
      * Create a new topic
-     * POST /api/topics
+     * POST /api/v1/topics
      */
     @PostMapping
     public ResponseEntity<TopicResponseDto> createTopic(@Valid @RequestBody TopicRequestDto requestDto) {
-        log.info("POST /api/topics - Creating new topic: {}", requestDto.getName());
+        log.info("POST /api/v1/topics - Creating new topic: {}", requestDto.getName());
         TopicResponseDto response = topicService.createTopic(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
      * Get topic by ID
-     * GET /api/topics/{id}
+     * GET /api/v1/topics/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<TopicResponseDto> getTopicById(
             @PathVariable Long id,
             @RequestParam(required = false, defaultValue = "false") Boolean includeChildren) {
-        log.info("GET /api/topics/{} - Fetching topic (includeChildren={})", id, includeChildren);
+        log.info("GET /api/v1/topics/{} - Fetching topic (includeChildren={})", id, includeChildren);
         
         TopicResponseDto response;
         if (includeChildren) {
@@ -53,25 +53,25 @@ public class TopicController {
 
     /**
      * Get topic by slug
-     * GET /api/topics/by-slug/{slug}
+     * GET /api/v1/topics/by-slug/{slug}
      */
     @GetMapping("/by-slug/{slug}")
     public ResponseEntity<TopicResponseDto> getTopicBySlug(@PathVariable String slug) {
-        log.info("GET /api/topics/by-slug/{} - Fetching topic by slug", slug);
+        log.info("GET /api/v1/topics/by-slug/{} - Fetching topic by slug", slug);
         TopicResponseDto response = topicService.getTopicBySlug(slug);
         return ResponseEntity.ok(response);
     }
 
     /**
      * Get all topics
-     * GET /api/topics
+     * GET /api/v1/topics
      */
     @GetMapping
     public ResponseEntity<List<TopicResponseDto>> getAllTopics(
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false, defaultValue = "false") Boolean rootOnly) {
         
-        log.info("GET /api/topics - Fetching topics (active={}, rootOnly={})", active, rootOnly);
+        log.info("GET /api/v1/topics - Fetching topics (active={}, rootOnly={})", active, rootOnly);
 
         List<TopicResponseDto> response;
 
@@ -93,12 +93,12 @@ public class TopicController {
 
     /**
      * Get root topics (topics without parent)
-     * GET /api/topics/root
+     * GET /api/v1/topics/root
      */
     @GetMapping("/root")
     public ResponseEntity<List<TopicResponseDto>> getRootTopics(
             @RequestParam(required = false, defaultValue = "false") Boolean includeChildren) {
-        log.info("GET /api/topics/root - Fetching root topics (includeChildren={})", includeChildren);
+        log.info("GET /api/v1/topics/root - Fetching root topics (includeChildren={})", includeChildren);
         
         List<TopicResponseDto> response;
         if (includeChildren) {
@@ -112,37 +112,37 @@ public class TopicController {
 
     /**
      * Get child topics of a parent topic
-     * GET /api/topics/{parentId}/children
+     * GET /api/v1/topics/{parentId}/children
      */
     @GetMapping("/{parentId}/children")
     public ResponseEntity<List<TopicResponseDto>> getChildTopics(@PathVariable Long parentId) {
-        log.info("GET /api/topics/{}/children - Fetching child topics", parentId);
+        log.info("GET /api/v1/topics/{}/children - Fetching child topics", parentId);
         List<TopicResponseDto> response = topicService.getChildTopics(parentId);
         return ResponseEntity.ok(response);
     }
 
     /**
      * Update an existing topic
-     * PUT /api/topics/{id}
+     * PUT /api/v1/topics/{id}
      */
     @PutMapping("/{id}")
     public ResponseEntity<TopicResponseDto> updateTopic(
             @PathVariable Long id,
             @Valid @RequestBody TopicRequestDto requestDto) {
-        log.info("PUT /api/topics/{} - Updating topic", id);
+        log.info("PUT /api/v1/topics/{} - Updating topic", id);
         TopicResponseDto response = topicService.updateTopic(id, requestDto);
         return ResponseEntity.ok(response);
     }
 
     /**
      * Partially update a topic
-     * PATCH /api/topics/{id}
+     * PATCH /api/v1/topics/{id}
      */
     @PatchMapping("/{id}")
     public ResponseEntity<TopicResponseDto> partialUpdateTopic(
             @PathVariable Long id,
             @RequestBody TopicRequestDto requestDto) {
-        log.info("PATCH /api/topics/{} - Partially updating topic", id);
+        log.info("PATCH /api/v1/topics/{} - Partially updating topic", id);
         // Note: Use same update method - MapStruct will handle null values with IGNORE strategy
         TopicResponseDto response = topicService.updateTopic(id, requestDto);
         return ResponseEntity.ok(response);
@@ -150,11 +150,11 @@ public class TopicController {
 
     /**
      * Delete a topic
-     * DELETE /api/topics/{id}
+     * DELETE /api/v1/topics/{id}
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTopic(@PathVariable Long id) {
-        log.info("DELETE /api/topics/{} - Deleting topic", id);
+        log.info("DELETE /api/v1/topics/{} - Deleting topic", id);
         topicService.deleteTopic(id);
         return ResponseEntity.noContent().build();
     }

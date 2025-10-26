@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/feeds")
+@RequestMapping("/api/v1/feeds")
 @RequiredArgsConstructor
 @Slf4j
 public class FeedController {
@@ -33,7 +33,7 @@ public class FeedController {
 
     /**
      * Get filtered and paginated feeds
-     * GET /api/feeds?sourceId=1&isActive=true&page=0&size=20&sort=priority,desc
+     * GET /api/v1/feeds?sourceId=1&isActive=true&page=0&size=20&sort=priority,desc
      */
     @GetMapping
     public ResponseEntity<PagedResponseDto<FeedResponseDto>> getFeeds(
@@ -52,7 +52,7 @@ public class FeedController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id,asc") String[] sort) {
 
-        log.info("GET /api/feeds - page: {}, size: {}", page, size);
+        log.info("GET /api/v1/feeds - page: {}, size: {}", page, size);
 
         // Build filter params
         FeedFilterParams filters = FeedFilterParams.builder()
@@ -79,46 +79,46 @@ public class FeedController {
 
     /**
      * Get feed by ID
-     * GET /api/feeds/{id}
+     * GET /api/v1/feeds/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<FeedResponseDto> getFeedById(@PathVariable Long id) {
-        log.info("GET /api/feeds/{}", id);
+        log.info("GET /api/v1/feeds/{}", id);
         FeedResponseDto feed = feedService.getFeedById(id);
         return ResponseEntity.ok(feed);
     }
 
     /**
      * Create new feed
-     * POST /api/feeds
+     * POST /api/v1/feeds
      */
     @PostMapping
     public ResponseEntity<FeedResponseDto> createFeed(@Valid @RequestBody FeedRequestDto requestDto) {
-        log.info("POST /api/feeds - Creating feed: {}", requestDto.getFeedUrl());
+        log.info("POST /api/v1/feeds - Creating feed: {}", requestDto.getFeedUrl());
         FeedResponseDto createdFeed = feedService.createFeed(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdFeed);
     }
 
     /**
      * Update existing feed
-     * PUT /api/feeds/{id}
+     * PUT /api/v1/feeds/{id}
      */
     @PutMapping("/{id}")
     public ResponseEntity<FeedResponseDto> updateFeed(
             @PathVariable Long id,
             @Valid @RequestBody FeedRequestDto requestDto) {
-        log.info("PUT /api/feeds/{}", id);
+        log.info("PUT /api/v1/feeds/{}", id);
         FeedResponseDto updatedFeed = feedService.updateFeed(id, requestDto);
         return ResponseEntity.ok(updatedFeed);
     }
 
     /**
      * Delete feed
-     * DELETE /api/feeds/{id}
+     * DELETE /api/v1/feeds/{id}
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFeed(@PathVariable Long id) {
-        log.info("DELETE /api/feeds/{}", id);
+        log.info("DELETE /api/v1/feeds/{}", id);
         feedService.deleteFeed(id);
         return ResponseEntity.noContent().build();
     }
@@ -128,45 +128,45 @@ public class FeedController {
     // ========================================================================
 
     /**
-     * Get all feeds (deprecated - use GET /api/feeds instead)
-     * GET /api/feeds/all
+     * Get all feeds (deprecated - use GET /api/v1/feeds instead)
+     * GET /api/v1/feeds/all
      */
     @GetMapping("/all")
     public ResponseEntity<List<FeedResponseDto>> getAllFeeds() {
-        log.info("GET /api/feeds/all (deprecated)");
+        log.info("GET /api/v1/feeds/all (deprecated)");
         List<FeedResponseDto> feeds = feedService.getAllFeeds();
         return ResponseEntity.ok(feeds);
     }
 
     /**
      * Get feeds by source ID
-     * GET /api/feeds/source/{sourceId}
+     * GET /api/v1/feeds/source/{sourceId}
      */
     @GetMapping("/source/{sourceId}")
     public ResponseEntity<List<FeedResponseDto>> getFeedsBySourceId(@PathVariable Long sourceId) {
-        log.info("GET /api/feeds/source/{}", sourceId);
+        log.info("GET /api/v1/feeds/source/{}", sourceId);
         List<FeedResponseDto> feeds = feedService.getFeedsBySourceId(sourceId);
         return ResponseEntity.ok(feeds);
     }
 
     /**
      * Get all active feeds
-     * GET /api/feeds/active
+     * GET /api/v1/feeds/active
      */
     @GetMapping("/active")
     public ResponseEntity<List<FeedResponseDto>> getActiveFeeds() {
-        log.info("GET /api/feeds/active");
+        log.info("GET /api/v1/feeds/active");
         List<FeedResponseDto> feeds = feedService.getActiveFeeds();
         return ResponseEntity.ok(feeds);
     }
 
     /**
      * Get feeds that need crawling (critical for worker)
-     * GET /api/feeds/needs-crawl
+     * GET /api/v1/feeds/needs-crawl
      */
     @GetMapping("/needs-crawl")
     public ResponseEntity<List<FeedResponseDto>> getFeedsNeedingCrawl() {
-        log.info("GET /api/feeds/needs-crawl");
+        log.info("GET /api/v1/feeds/needs-crawl");
         List<FeedResponseDto> feeds = feedService.getFeedsNeedingCrawl();
         log.info("Found {} feeds needing crawl", feeds.size());
         return ResponseEntity.ok(feeds);
@@ -174,24 +174,24 @@ public class FeedController {
 
     /**
      * Get feeds by priority range
-     * GET /api/feeds/priority?min=7&max=10
+     * GET /api/v1/feeds/priority?min=7&max=10
      */
     @GetMapping("/priority")
     public ResponseEntity<List<FeedResponseDto>> getFeedsByPriorityRange(
             @RequestParam(defaultValue = "1") Integer min,
             @RequestParam(defaultValue = "10") Integer max) {
-        log.info("GET /api/feeds/priority?min={}&max={}", min, max);
+        log.info("GET /api/v1/feeds/priority?min={}&max={}", min, max);
         List<FeedResponseDto> feeds = feedService.getFeedsByPriorityRange(min, max);
         return ResponseEntity.ok(feeds);
     }
 
     /**
      * Get feeds by type
-     * GET /api/feeds/type/{feedType}
+     * GET /api/v1/feeds/type/{feedType}
      */
     @GetMapping("/type/{feedType}")
     public ResponseEntity<List<FeedResponseDto>> getFeedsByType(@PathVariable Feed.FeedType feedType) {
-        log.info("GET /api/feeds/type/{}", feedType);
+        log.info("GET /api/v1/feeds/type/{}", feedType);
         List<FeedResponseDto> feeds = feedService.getFeedsByType(feedType);
         return ResponseEntity.ok(feeds);
     }
@@ -202,46 +202,46 @@ public class FeedController {
 
     /**
      * Activate a feed
-     * PATCH /api/feeds/{id}/activate
+     * PATCH /api/v1/feeds/{id}/activate
      */
     @PatchMapping("/{id}/activate")
     public ResponseEntity<FeedResponseDto> activateFeed(@PathVariable Long id) {
-        log.info("PATCH /api/feeds/{}/activate", id);
+        log.info("PATCH /api/v1/feeds/{}/activate", id);
         FeedResponseDto feed = feedService.activateFeed(id);
         return ResponseEntity.ok(feed);
     }
 
     /**
      * Deactivate a feed
-     * PATCH /api/feeds/{id}/deactivate
+     * PATCH /api/v1/feeds/{id}/deactivate
      */
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<FeedResponseDto> deactivateFeed(@PathVariable Long id) {
-        log.info("PATCH /api/feeds/{}/deactivate", id);
+        log.info("PATCH /api/v1/feeds/{}/deactivate", id);
         FeedResponseDto feed = feedService.deactivateFeed(id);
         return ResponseEntity.ok(feed);
     }
 
     /**
      * Bulk activate feeds
-     * POST /api/feeds/bulk/activate
+     * POST /api/v1/feeds/bulk/activate
      * Body: [1, 2, 3, 4, 5]
      */
     @PostMapping("/bulk/activate")
     public ResponseEntity<Void> bulkActivateFeeds(@RequestBody List<Long> feedIds) {
-        log.info("POST /api/feeds/bulk/activate - {} feeds", feedIds.size());
+        log.info("POST /api/v1/feeds/bulk/activate - {} feeds", feedIds.size());
         feedService.bulkActivateFeeds(feedIds);
         return ResponseEntity.ok().build();
     }
 
     /**
      * Bulk deactivate feeds
-     * POST /api/feeds/bulk/deactivate
+     * POST /api/v1/feeds/bulk/deactivate
      * Body: [1, 2, 3, 4, 5]
      */
     @PostMapping("/bulk/deactivate")
     public ResponseEntity<Void> bulkDeactivateFeeds(@RequestBody List<Long> feedIds) {
-        log.info("POST /api/feeds/bulk/deactivate - {} feeds", feedIds.size());
+        log.info("POST /api/v1/feeds/bulk/deactivate - {} feeds", feedIds.size());
         feedService.bulkDeactivateFeeds(feedIds);
         return ResponseEntity.ok().build();
     }
@@ -252,25 +252,25 @@ public class FeedController {
 
     /**
      * Record successful crawl
-     * POST /api/feeds/{id}/crawl/success
+     * POST /api/v1/feeds/{id}/crawl/success
      */
     @PostMapping("/{id}/crawl/success")
     public ResponseEntity<Void> recordSuccessfulCrawl(@PathVariable Long id) {
-        log.info("POST /api/feeds/{}/crawl/success", id);
+        log.info("POST /api/v1/feeds/{}/crawl/success", id);
         feedService.recordSuccessfulCrawl(id);
         return ResponseEntity.ok().build();
     }
 
     /**
      * Record failed crawl
-     * POST /api/feeds/{id}/crawl/failure
+     * POST /api/v1/feeds/{id}/crawl/failure
      * Body: { "errorMessage": "Connection timeout" }
      */
     @PostMapping("/{id}/crawl/failure")
     public ResponseEntity<Void> recordFailedCrawl(
             @PathVariable Long id,
             @RequestBody CrawlFailureRequest request) {
-        log.warn("POST /api/feeds/{}/crawl/failure - Error: {}", id, request.getErrorMessage());
+        log.warn("POST /api/v1/feeds/{}/crawl/failure - Error: {}", id, request.getErrorMessage());
         feedService.recordFailedCrawl(id, request.getErrorMessage());
         return ResponseEntity.ok().build();
     }
