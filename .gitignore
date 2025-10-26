@@ -91,3 +91,4 @@ dmypy.json
 *.pyproj
 .pypirc
 .python-version
+ingestion.log

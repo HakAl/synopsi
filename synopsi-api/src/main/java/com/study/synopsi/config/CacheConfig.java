@@ -15,13 +15,19 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager(PersonalizationConfig personalizationConfig) {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("personalizedFeed");
-        
+        // Add all cache names here
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager(
+                "personalizedFeed",
+                "feeds",
+                "sources",
+                "articles"
+        );
+
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(personalizationConfig.getCache().getMaxCacheSize())
                 .expireAfterWrite(personalizationConfig.getCache().getTtlMinutes(), TimeUnit.MINUTES)
                 .recordStats());
-        
+
         return cacheManager;
     }
 }
