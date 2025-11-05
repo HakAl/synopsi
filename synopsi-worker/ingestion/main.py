@@ -7,6 +7,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 from fetchers.rss_fetcher import RSSFetcher
+from fetchers.web_scraper import WebScraper
 from api_client import SynopsiAPIClient
 
 # Load .env from project root (parent directory of ingestion/)
@@ -32,6 +33,7 @@ class IngestionWorker:
         self.api_client = api_client
         self.feed_urls = feed_urls
         self.rss_fetcher = RSSFetcher(user_agent="Synopsi-Ingestion/1.0")
+        self.web_scraper = WebScraper(user_agent="Synopsi-Ingestion/1.0")
         self.created_feeds = []
 
         logger.info(f"Initialized ingestion worker with {len(feed_urls)} feed URLs")
@@ -89,8 +91,8 @@ class IngestionWorker:
 
         logger.info(f"Successfully created {len(self.created_feeds)} feeds")
 
-        # Step 3: Fetch articles from RSS feeds
-        logger.info(f"Fetching articles from {len(self.created_feeds)} RSS feeds")
+        # Step 3: Fetch articles from feeds (RSS or direct web pages)
+        logger.info(f"Fetching articles from {len(self.created_feeds)} feeds")
         all_articles = []
         feed_stats = {}
 
@@ -99,8 +101,14 @@ class IngestionWorker:
             feed_id = feed_info['feedId']
 
             try:
-                # Fetch articles
-                articles = self.rss_fetcher.fetch_feed(feed_url)
+                # Determine feed type and fetch articles
+                if self._is_rss_feed(feed_url):
+                    logger.info(f"Fetching RSS feed: {feed_url}")
+                    articles = self.rss_fetcher.fetch_feed(feed_url)
+                else:
+                    logger.info(f"Scraping web page: {feed_url}")
+                    # WebScraper.scrape_page() returns list of articles
+                    articles = self.web_scraper.scrape_page(feed_url)
 
                 # Add feedId to each article
                 for article in articles:
@@ -180,9 +188,37 @@ class IngestionWorker:
             'articles_failed': 0
         }
     
+    def _is_rss_feed(self, url: str) -> bool:
+        """
+        Determine if a URL is an RSS/Atom feed or a regular web page.
+        Checks for common RSS indicators in the URL.
+
+        Args:
+            url: URL to check
+
+        Returns:
+            True if URL appears to be an RSS feed, False otherwise
+        """
+        url_lower = url.lower()
+
+        # Common RSS/Atom indicators
+        rss_indicators = [
+            '/rss',
+            '/feed',
+            '/atom',
+            '.rss',
+            '.xml',
+            'rss.xml',
+            'feed.xml',
+            'atom.xml',
+        ]
+
+        return any(indicator in url_lower for indicator in rss_indicators)
+
     def cleanup(self):
         """Cleanup resources."""
         self.api_client.close()
+        self.web_scraper.close()
         logger.info("Cleanup complete")
 
 
