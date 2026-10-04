@@ -1,0 +1,61 @@
+name: Python Workers CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'synopsi-worker/**'
+      - '.github/workflows/workers-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'synopsi-worker/**'
+      - '.github/workflows/workers-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install ingestion dependencies
+        run: |
+          pip install -r synopsi-worker/requirements-ingestion.txt
+
+      - name: Install test dependencies
+        run: |
+          pip install -r synopsi-worker/requirements-test.txt
+
+      - name: Run tests with coverage
+        run: |
+          cd synopsi-worker
+          pytest tests/ --cov=. --cov-report=xml --cov-report=term
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: synopsi-worker/.coverage
+          retention-days: 30
+
+      - name: Upload pytest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: synopsi-worker/.pytest_cache/
+          retention-days: 30

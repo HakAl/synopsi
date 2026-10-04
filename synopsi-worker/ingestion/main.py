@@ -1,30 +1,22 @@
-import logging
 import sys
 import os
+import time
 from pathlib import Path
 from typing import List, Dict
 from datetime import datetime
 from dotenv import load_dotenv
 
-from fetchers.rss_fetcher import RSSFetcher
-from fetchers.web_scraper import WebScraper
-from api_client import SynopsiAPIClient
+from ingestion.fetchers.rss_fetcher import RSSFetcher
+from ingestion.fetchers.web_scraper import WebScraper
+from ingestion.api_client import SynopsiAPIClient
+from ingestion.logger import setup_logger, log_with_context
 
 # Load .env from project root (parent directory of ingestion/)
 env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('ingestion.log')
-    ]
-)
-
-logger = logging.getLogger(__name__)
+# Setup structured logger
+logger = setup_logger(__name__)
 
 
 class IngestionWorker:
@@ -101,12 +93,14 @@ class IngestionWorker:
             feed_id = feed_info['feedId']
 
             try:
+                fetch_start = time.time()
+
                 # Determine feed type and fetch articles
                 if self._is_rss_feed(feed_url):
-                    logger.info(f"Fetching RSS feed: {feed_url}")
+                    log_with_context(logger, 'INFO', f"Fetching RSS feed", feed_url=feed_url)
                     articles = self.rss_fetcher.fetch_feed(feed_url)
                 else:
-                    logger.info(f"Scraping web page: {feed_url}")
+                    log_with_context(logger, 'INFO', f"Scraping web page", feed_url=feed_url)
                     # WebScraper.scrape_page() returns list of articles
                     articles = self.web_scraper.scrape_page(feed_url)
 
@@ -116,10 +110,22 @@ class IngestionWorker:
 
                 all_articles.extend(articles)
                 feed_stats[feed_url] = len(articles)
-                logger.info(f"Fetched {len(articles)} articles from {feed_url} (feedId: {feed_id})")
+
+                fetch_duration = time.time() - fetch_start
+                log_with_context(
+                    logger, 'INFO',
+                    f"Fetched {len(articles)} articles in {fetch_duration:.2f}s",
+                    feed_url=feed_url,
+                    article_count=len(articles)
+                )
 
             except Exception as e:
-                logger.error(f"Failed to fetch feed {feed_url}: {e}")
+                fetch_duration = time.time() - fetch_start
+                log_with_context(
+                    logger, 'ERROR',
+                    f"Failed to fetch feed in {fetch_duration:.2f}s: {e}",
+                    feed_url=feed_url
+                )
                 feed_stats[feed_url] = 0
 
         if not all_articles:

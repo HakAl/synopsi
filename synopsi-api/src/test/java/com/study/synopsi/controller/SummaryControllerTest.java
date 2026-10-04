@@ -3,6 +3,8 @@ package com.study.synopsi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.study.synopsi.config.JwtAuthenticationFilter;
 import com.study.synopsi.config.JwtUtil;
+import com.study.synopsi.dto.SummaryJobResponseDto;
+import com.study.synopsi.dto.SummaryResponseDto;
 import com.study.synopsi.model.Summary;
 import com.study.synopsi.model.SummaryJob;
 import com.study.synopsi.service.AuthService;
@@ -35,6 +37,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 public class SummaryControllerTest {
 
+    // These are @WebMvcTest with a mocked service, so they assert routing,
+    // status codes and JSON shape only. They cannot catch a serialization
+    // failure on a real entity, which is why returning lazy JPA entities from
+    // this controller went unnoticed. SummaryJobSerializationTest covers that.
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -58,10 +65,10 @@ public class SummaryControllerTest {
 
     @Test
     void requestSummary_shouldReturnAccepted() throws Exception {
-        SummaryJob job = new SummaryJob();
+        SummaryJobResponseDto job = new SummaryJobResponseDto();
         job.setId(1L);
 
-        when(summaryService.requestSummary(anyLong(), any(), any(Summary.SummaryType.class), any(Summary.SummaryLength.class)))
+        when(summaryService.requestSummaryAsDto(anyLong(), any(), any(Summary.SummaryType.class), any(Summary.SummaryLength.class)))
                 .thenReturn(job);
 
         mockMvc.perform(post("/api/v1/summaries/request")
@@ -75,10 +82,10 @@ public class SummaryControllerTest {
 
     @Test
     void getSummary_shouldReturnSummaryWhenFound() throws Exception {
-        Summary summary = new Summary();
+        SummaryResponseDto summary = new SummaryResponseDto();
         summary.setId(1L);
 
-        when(summaryService.getSummary(anyLong(), any(), any(Summary.SummaryType.class)))
+        when(summaryService.getSummaryAsDto(anyLong(), any(), any(Summary.SummaryType.class)))
                 .thenReturn(Optional.of(summary));
 
         mockMvc.perform(get("/api/v1/summaries/article/1")
@@ -90,7 +97,7 @@ public class SummaryControllerTest {
 
     @Test
     void getSummary_shouldReturnNotFoundWhenMissing() throws Exception {
-        when(summaryService.getSummary(anyLong(), any(), any(Summary.SummaryType.class)))
+        when(summaryService.getSummaryAsDto(anyLong(), any(), any(Summary.SummaryType.class)))
                 .thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/v1/summaries/article/1")
@@ -101,10 +108,10 @@ public class SummaryControllerTest {
     
     @Test
     void getDefaultSummary_shouldReturnSummary() throws Exception {
-        Summary summary = new Summary();
+        SummaryResponseDto summary = new SummaryResponseDto();
         summary.setId(1L);
 
-        when(summaryService.getDefaultSummary(1L, Summary.SummaryType.BRIEF)).thenReturn(Optional.of(summary));
+        when(summaryService.getDefaultSummaryAsDto(1L, Summary.SummaryType.BRIEF)).thenReturn(Optional.of(summary));
 
         mockMvc.perform(get("/api/v1/summaries/article/1/default")
                         .param("summaryType", "BRIEF"))
@@ -114,10 +121,10 @@ public class SummaryControllerTest {
 
     @Test
     void getSummaryById_shouldReturnSummary() throws Exception {
-        Summary summary = new Summary();
+        SummaryResponseDto summary = new SummaryResponseDto();
         summary.setId(1L);
 
-        when(summaryService.getSummaryById(1L)).thenReturn(summary);
+        when(summaryService.getSummaryByIdAsDto(1L)).thenReturn(summary);
 
         mockMvc.perform(get("/api/v1/summaries/1"))
                 .andExpect(status().isOk())
@@ -126,11 +133,11 @@ public class SummaryControllerTest {
 
     @Test
     void getArticleSummaries_shouldReturnListOfSummaries() throws Exception {
-        Summary summary = new Summary();
+        SummaryResponseDto summary = new SummaryResponseDto();
         summary.setId(1L);
-        List<Summary> summaries = Collections.singletonList(summary);
+        List<SummaryResponseDto> summaries = Collections.singletonList(summary);
 
-        when(summaryService.getArticleSummaries(1L)).thenReturn(summaries);
+        when(summaryService.getArticleSummariesAsDtos(1L)).thenReturn(summaries);
 
         mockMvc.perform(get("/api/v1/summaries/article/1/all"))
                 .andExpect(status().isOk())
@@ -139,11 +146,11 @@ public class SummaryControllerTest {
 
     @Test
     void getUserSummaries_shouldReturnPageOfSummaries() throws Exception {
-        Summary summary = new Summary();
+        SummaryResponseDto summary = new SummaryResponseDto();
         summary.setId(1L);
-        Page<Summary> pagedSummaries = new PageImpl<>(Collections.singletonList(summary));
+        Page<SummaryResponseDto> pagedSummaries = new PageImpl<>(Collections.singletonList(summary));
 
-        when(summaryService.getUserSummaries(anyLong(), any(PageRequest.class)))
+        when(summaryService.getUserSummariesAsDtos(anyLong(), any(PageRequest.class)))
                 .thenReturn(pagedSummaries);
 
         mockMvc.perform(get("/api/v1/summaries/user/1")
@@ -155,10 +162,10 @@ public class SummaryControllerTest {
 
     @Test
     void regenerateSummary_shouldReturnAccepted() throws Exception {
-        SummaryJob job = new SummaryJob();
+        SummaryJobResponseDto job = new SummaryJobResponseDto();
         job.setId(2L);
 
-        when(summaryService.regenerateSummary(1L)).thenReturn(job);
+        when(summaryService.regenerateSummaryAsDto(1L)).thenReturn(job);
 
         mockMvc.perform(post("/api/v1/summaries/1/regenerate"))
                 .andExpect(status().isAccepted())
@@ -167,10 +174,10 @@ public class SummaryControllerTest {
 
     @Test
     void getJobById_shouldReturnJob() throws Exception {
-        SummaryJob job = new SummaryJob();
+        SummaryJobResponseDto job = new SummaryJobResponseDto();
         job.setId(1L);
 
-        when(summaryService.getJobById(1L)).thenReturn(job);
+        when(summaryService.getJobByIdAsDto(1L)).thenReturn(job);
 
         mockMvc.perform(get("/api/v1/summaries/jobs/1"))
                 .andExpect(status().isOk())
@@ -179,11 +186,11 @@ public class SummaryControllerTest {
 
     @Test
     void getQueuedJobs_shouldReturnListOfJobs() throws Exception {
-        SummaryJob job = new SummaryJob();
+        SummaryJobResponseDto job = new SummaryJobResponseDto();
         job.setId(1L);
-        List<SummaryJob> jobs = Collections.singletonList(job);
+        List<SummaryJobResponseDto> jobs = Collections.singletonList(job);
 
-        when(summaryService.getQueuedJobs()).thenReturn(jobs);
+        when(summaryService.getQueuedJobsAsDtos()).thenReturn(jobs);
 
         mockMvc.perform(get("/api/v1/summaries/jobs/queued"))
                 .andExpect(status().isOk())
@@ -192,10 +199,10 @@ public class SummaryControllerTest {
 
     @Test
     void retryFailedJob_shouldReturnOk() throws Exception {
-        SummaryJob job = new SummaryJob();
+        SummaryJobResponseDto job = new SummaryJobResponseDto();
         job.setId(1L);
 
-        when(summaryService.retryFailedJob(1L)).thenReturn(job);
+        when(summaryService.retryFailedJobAsDto(1L)).thenReturn(job);
 
         mockMvc.perform(post("/api/v1/summaries/jobs/1/retry"))
                 .andExpect(status().isOk())

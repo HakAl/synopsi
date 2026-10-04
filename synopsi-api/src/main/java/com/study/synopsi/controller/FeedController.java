@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -95,6 +97,7 @@ public class FeedController {
     @PostMapping
     public ResponseEntity<FeedResponseDto> createFeed(@Valid @RequestBody FeedRequestDto requestDto) {
         log.info("POST /api/v1/feeds - Creating feed: {}", requestDto.getFeedUrl());
+        validateFeedRequest(requestDto);
         FeedResponseDto createdFeed = feedService.createFeed(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdFeed);
     }
@@ -108,6 +111,7 @@ public class FeedController {
             @PathVariable Long id,
             @Valid @RequestBody FeedRequestDto requestDto) {
         log.info("PUT /api/v1/feeds/{}", id);
+        validateFeedRequest(requestDto);
         FeedResponseDto updatedFeed = feedService.updateFeed(id, requestDto);
         return ResponseEntity.ok(updatedFeed);
     }
@@ -273,6 +277,41 @@ public class FeedController {
         log.warn("POST /api/v1/feeds/{}/crawl/failure - Error: {}", id, request.getErrorMessage());
         feedService.recordFailedCrawl(id, request.getErrorMessage());
         return ResponseEntity.ok().build();
+    }
+
+    // ========================================================================
+    // HELPER METHODS
+    // ========================================================================
+
+    /**
+     * Validates feed request data
+     * @param request the feed request DTO to validate
+     * @throws IllegalArgumentException if validation fails
+     */
+    private void validateFeedRequest(FeedRequestDto request) {
+        // Validate feedUrl is a valid URL format
+        if (request.getFeedUrl() != null) {
+            try {
+                URI uri = new URI(request.getFeedUrl());
+                String scheme = uri.getScheme();
+                if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                    throw new IllegalArgumentException("Feed URL must start with http:// or https://");
+                }
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Feed URL is not a valid URL format: " + e.getMessage());
+            }
+        }
+
+        // Validate title is not blank and <= 255 characters
+        if (request.getTitle() != null) {
+            String title = request.getTitle().trim();
+            if (title.isEmpty()) {
+                throw new IllegalArgumentException("Title cannot be blank");
+            }
+            if (title.length() > 255) {
+                throw new IllegalArgumentException("Title cannot exceed 255 characters (current length: " + title.length() + ")");
+            }
+        }
     }
 
     // ========================================================================

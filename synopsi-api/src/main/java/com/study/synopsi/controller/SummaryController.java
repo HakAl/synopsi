@@ -1,5 +1,7 @@
 package com.study.synopsi.controller;
 
+import com.study.synopsi.dto.SummaryJobResponseDto;
+import com.study.synopsi.dto.SummaryResponseDto;
 import com.study.synopsi.model.Summary;
 import com.study.synopsi.model.SummaryJob;
 import com.study.synopsi.service.SummaryService;
@@ -25,13 +27,14 @@ public class SummaryController {
      * POST /api/v1/summaries/request
      */
     @PostMapping("/request")
-    public ResponseEntity<SummaryJob> requestSummary(
+    public ResponseEntity<SummaryJobResponseDto> requestSummary(
             @RequestParam Long articleId,
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "BRIEF") Summary.SummaryType summaryType,
             @RequestParam(defaultValue = "MEDIUM") Summary.SummaryLength summaryLength) {
 
-        SummaryJob job = summaryService.requestSummary(articleId, userId, summaryType, summaryLength);
+        SummaryJobResponseDto job =
+                summaryService.requestSummaryAsDto(articleId, userId, summaryType, summaryLength);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(job);
     }
 
@@ -40,12 +43,13 @@ public class SummaryController {
      * GET /api/v1/summaries/article/{articleId}
      */
     @GetMapping("/article/{articleId}")
-    public ResponseEntity<Summary> getSummary(
+    public ResponseEntity<SummaryResponseDto> getSummary(
             @PathVariable Long articleId,
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "BRIEF") Summary.SummaryType summaryType) {
 
-        Optional<Summary> summary = summaryService.getSummary(articleId, userId, summaryType);
+        Optional<SummaryResponseDto> summary =
+                summaryService.getSummaryAsDto(articleId, userId, summaryType);
         return summary
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -56,11 +60,12 @@ public class SummaryController {
      * GET /api/v1/summaries/article/{articleId}/default
      */
     @GetMapping("/article/{articleId}/default")
-    public ResponseEntity<Summary> getDefaultSummary(
+    public ResponseEntity<SummaryResponseDto> getDefaultSummary(
             @PathVariable Long articleId,
             @RequestParam(defaultValue = "BRIEF") Summary.SummaryType summaryType) {
 
-        Optional<Summary> summary = summaryService.getDefaultSummary(articleId, summaryType);
+        Optional<SummaryResponseDto> summary =
+                summaryService.getDefaultSummaryAsDto(articleId, summaryType);
         return summary
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -71,8 +76,8 @@ public class SummaryController {
      * GET /api/v1/summaries/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Summary> getSummaryById(@PathVariable Long id) {
-        Summary summary = summaryService.getSummaryById(id);
+    public ResponseEntity<SummaryResponseDto> getSummaryById(@PathVariable Long id) {
+        SummaryResponseDto summary = summaryService.getSummaryByIdAsDto(id);
         return ResponseEntity.ok(summary);
     }
 
@@ -81,8 +86,8 @@ public class SummaryController {
      * GET /api/v1/summaries/article/{articleId}/all
      */
     @GetMapping("/article/{articleId}/all")
-    public ResponseEntity<List<Summary>> getArticleSummaries(@PathVariable Long articleId) {
-        List<Summary> summaries = summaryService.getArticleSummaries(articleId);
+    public ResponseEntity<List<SummaryResponseDto>> getArticleSummaries(@PathVariable Long articleId) {
+        List<SummaryResponseDto> summaries = summaryService.getArticleSummariesAsDtos(articleId);
         return ResponseEntity.ok(summaries);
     }
 
@@ -91,11 +96,11 @@ public class SummaryController {
      * GET /api/v1/summaries/user/{userId}
      */
     @GetMapping("/user/{userId}")
-    public ResponseEntity<Page<Summary>> getUserSummaries(
+    public ResponseEntity<Page<SummaryResponseDto>> getUserSummaries(
             @PathVariable Long userId,
             Pageable pageable) {
 
-        Page<Summary> summaries = summaryService.getUserSummaries(userId, pageable);
+        Page<SummaryResponseDto> summaries = summaryService.getUserSummariesAsDtos(userId, pageable);
         return ResponseEntity.ok(summaries);
     }
 
@@ -104,8 +109,8 @@ public class SummaryController {
      * POST /api/v1/summaries/{id}/regenerate
      */
     @PostMapping("/{id}/regenerate")
-    public ResponseEntity<SummaryJob> regenerateSummary(@PathVariable Long id) {
-        SummaryJob job = summaryService.regenerateSummary(id);
+    public ResponseEntity<SummaryJobResponseDto> regenerateSummary(@PathVariable Long id) {
+        SummaryJobResponseDto job = summaryService.regenerateSummaryAsDto(id);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(job);
     }
 
@@ -114,8 +119,8 @@ public class SummaryController {
      * GET /api/v1/summaries/jobs/{jobId}
      */
     @GetMapping("/jobs/{jobId}")
-    public ResponseEntity<SummaryJob> getJobById(@PathVariable Long jobId) {
-        SummaryJob job = summaryService.getJobById(jobId);
+    public ResponseEntity<SummaryJobResponseDto> getJobById(@PathVariable Long jobId) {
+        SummaryJobResponseDto job = summaryService.getJobByIdAsDto(jobId);
         return ResponseEntity.ok(job);
     }
 
@@ -124,8 +129,8 @@ public class SummaryController {
      * GET /api/v1/summaries/jobs/queued
      */
     @GetMapping("/jobs/queued")
-    public ResponseEntity<List<SummaryJob>> getQueuedJobs() {
-        List<SummaryJob> jobs = summaryService.getQueuedJobs();
+    public ResponseEntity<List<SummaryJobResponseDto>> getQueuedJobs() {
+        List<SummaryJobResponseDto> jobs = summaryService.getQueuedJobsAsDtos();
         return ResponseEntity.ok(jobs);
     }
 
@@ -134,8 +139,8 @@ public class SummaryController {
      * POST /api/v1/summaries/jobs/{jobId}/retry
      */
     @PostMapping("/jobs/{jobId}/retry")
-    public ResponseEntity<SummaryJob> retryFailedJob(@PathVariable Long jobId) {
-        SummaryJob job = summaryService.retryFailedJob(jobId);
+    public ResponseEntity<SummaryJobResponseDto> retryFailedJob(@PathVariable Long jobId) {
+        SummaryJobResponseDto job = summaryService.retryFailedJobAsDto(jobId);
         return ResponseEntity.ok(job);
     }
 

@@ -1,5 +1,7 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:8080';
+// Same origin: the API serves this page, so a relative base works
+// in every environment without a rebuild.
+const API_BASE_URL = '';
 const TOKEN_KEY = 'synopsi_jwt_token';
 const USER_KEY = 'synopsi_user';
 
@@ -36,6 +38,46 @@ const parseJwt = (token) => {
     }
 };
 
+// Fetch with retry logic (exponential backoff, 10s timeout, max 3 attempts)
+const fetchWithRetry = async (url, config, maxAttempts = 3) => {
+    const timeout = 10000; // 10 seconds
+    const baseDelay = 100; // 100ms base delay for exponential backoff
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        try {
+            const response = await fetch(url, {
+                ...config,
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            // Retry on 5xx server errors only (not 4xx client errors)
+            if (response.status >= 500 && attempt < maxAttempts - 1) {
+                const delay = baseDelay * Math.pow(2, attempt);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+
+            return response;
+        } catch (error) {
+            clearTimeout(timeoutId);
+
+            // Don't retry on abort (timeout) or network errors if this is the last attempt
+            if (attempt === maxAttempts - 1) {
+                throw error;
+            }
+
+            // Retry on network errors and timeouts with exponential backoff
+            const delay = baseDelay * Math.pow(2, attempt);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+};
+
 // HTTP Client with automatic token injection
 const httpClient = async (url, options = {}) => {
     const token = tokenManager.getToken();
@@ -54,11 +96,14 @@ const httpClient = async (url, options = {}) => {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}${url}`, config);
+        const response = await fetchWithRetry(`${API_BASE_URL}${url}`, config);
 
-        // Handle 401 - token expired or invalid
-        // Handle 403 - forbidden/insufficient permissions
-        if (response.status === 401 || response.status === 403) {
+        // A 401 from the auth endpoints means bad credentials, not an
+        // expired session. Redirecting there would reload the login page
+        // and discard the error the user needs to see.
+        const isAuthEndpoint = url.startsWith('/api/v1/auth/');
+
+        if ((response.status === 401 || response.status === 403) && !isAuthEndpoint) {
             tokenManager.clear();
             window.location.href = '/index.html';
             throw new Error('Session expired. Please login again.');

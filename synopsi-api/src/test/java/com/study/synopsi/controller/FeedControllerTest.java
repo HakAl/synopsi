@@ -279,6 +279,55 @@ class FeedControllerTest {
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        @DisplayName("Should return 400 for blank title")
+        void shouldReturn400ForBlankTitle() throws Exception {
+            // Given
+            testFeedRequestDto.setTitle("   ");
+
+            // When/Then
+            mockMvc.perform(post("/api/v1/feeds")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(testFeedRequestDto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot be blank")));
+
+            verify(feedService, never()).createFeed(any(FeedRequestDto.class));
+        }
+
+        @Test
+        @DisplayName("Should return 400 for title exceeding 255 characters")
+        void shouldReturn400ForTitleExceeding255Characters() throws Exception {
+            // Given
+            String longTitle = "a".repeat(256);
+            testFeedRequestDto.setTitle(longTitle);
+
+            // When/Then
+            mockMvc.perform(post("/api/v1/feeds")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(testFeedRequestDto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot exceed 255 characters")));
+
+            verify(feedService, never()).createFeed(any(FeedRequestDto.class));
+        }
+
+        @Test
+        @DisplayName("Should return 400 for non-http/https URL scheme")
+        void shouldReturn400ForNonHttpScheme() throws Exception {
+            // Given - URL with ftp:// scheme (not http/https)
+            testFeedRequestDto.setFeedUrl("ftp://example.com/feed.rss");
+
+            // When/Then - Controller validation should reject before service is called
+            mockMvc.perform(post("/api/v1/feeds")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(testFeedRequestDto)))
+                    .andExpect(status().isBadRequest());
+
+            // Service should never be called due to controller validation
+            verify(feedService, never()).createFeed(any(FeedRequestDto.class));
+        }
     }
 
     @Nested
@@ -318,6 +367,39 @@ class FeedControllerTest {
                     .andExpect(status().isNotFound());
 
             verify(feedService).updateFeed(eq(999L), any(FeedRequestDto.class));
+        }
+
+        @Test
+        @DisplayName("Should return 400 for blank title")
+        void shouldReturn400ForBlankTitle() throws Exception {
+            // Given
+            testFeedRequestDto.setTitle("   ");
+
+            // When/Then
+            mockMvc.perform(put("/api/v1/feeds/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(testFeedRequestDto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot be blank")));
+
+            verify(feedService, never()).updateFeed(anyLong(), any(FeedRequestDto.class));
+        }
+
+        @Test
+        @DisplayName("Should return 400 for title exceeding 255 characters")
+        void shouldReturn400ForTitleExceeding255Characters() throws Exception {
+            // Given
+            String longTitle = "a".repeat(256);
+            testFeedRequestDto.setTitle(longTitle);
+
+            // When/Then
+            mockMvc.perform(put("/api/v1/feeds/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(testFeedRequestDto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot exceed 255 characters")));
+
+            verify(feedService, never()).updateFeed(anyLong(), any(FeedRequestDto.class));
         }
     }
 

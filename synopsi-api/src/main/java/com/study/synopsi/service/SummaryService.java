@@ -1,5 +1,7 @@
 package com.study.synopsi.service;
 
+import com.study.synopsi.dto.SummaryJobResponseDto;
+import com.study.synopsi.dto.SummaryResponseDto;
 import com.study.synopsi.exception.ArticleNotFoundException;
 import com.study.synopsi.exception.SummaryJobNotFoundException;
 import com.study.synopsi.exception.SummaryNotFoundException;
@@ -7,6 +9,8 @@ import com.study.synopsi.model.Article;
 import com.study.synopsi.model.Summary;
 import com.study.synopsi.model.SummaryJob;
 import com.study.synopsi.model.User;
+import com.study.synopsi.mapper.SummaryJobMapper;
+import com.study.synopsi.mapper.SummaryMapper;
 import com.study.synopsi.repository.ArticleRepository;
 import com.study.synopsi.repository.SummaryJobRepository;
 import com.study.synopsi.repository.SummaryRepository;
@@ -33,10 +37,81 @@ public class SummaryService {
     private final SummaryJobRepository summaryJobRepository;
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
+    private final SummaryMapper summaryMapper;
+    private final SummaryJobMapper summaryJobMapper;
 
     // Configuration constants
     private static final int JOB_CLEANUP_DAYS = 7;
     private static final int STALE_JOB_TIMEOUT_HOURS = 2;
+
+    // ========================================================================
+    // DTO FACADE
+    // ========================================================================
+    // Controllers must use these, never the entity-returning methods below.
+    // Summary and SummaryJob both hold LAZY @ManyToOne links to Article and
+    // User. A controller that returns the entity serializes it after the
+    // transaction has closed, so Jackson reaches an uninitialized proxy and
+    // the request fails with 500. Mapping here happens inside the transaction.
+    // The DTOs also carry articleId, which neither entity exposes and which
+    // the summarization worker reads in order to fetch article content.
+
+    @Transactional
+    public SummaryJobResponseDto requestSummaryAsDto(
+            Long articleId,
+            Long userId,
+            Summary.SummaryType summaryType,
+            Summary.SummaryLength summaryLength) {
+        return summaryJobMapper.toDto(
+                requestSummary(articleId, userId, summaryType, summaryLength));
+    }
+
+    @Transactional
+    public SummaryJobResponseDto regenerateSummaryAsDto(Long summaryId) {
+        return summaryJobMapper.toDto(regenerateSummary(summaryId));
+    }
+
+    @Transactional(readOnly = true)
+    public SummaryJobResponseDto getJobByIdAsDto(Long jobId) {
+        return summaryJobMapper.toDto(getJobById(jobId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<SummaryJobResponseDto> getQueuedJobsAsDtos() {
+        return summaryJobMapper.toDtoList(getQueuedJobs());
+    }
+
+    @Transactional
+    public SummaryJobResponseDto retryFailedJobAsDto(Long jobId) {
+        return summaryJobMapper.toDto(retryFailedJob(jobId));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<SummaryResponseDto> getSummaryAsDto(
+            Long articleId, Long userId, Summary.SummaryType summaryType) {
+        return getSummary(articleId, userId, summaryType).map(summaryMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<SummaryResponseDto> getDefaultSummaryAsDto(
+            Long articleId, Summary.SummaryType summaryType) {
+        return getDefaultSummary(articleId, summaryType).map(summaryMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public SummaryResponseDto getSummaryByIdAsDto(Long summaryId) {
+        return summaryMapper.toDto(getSummaryById(summaryId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<SummaryResponseDto> getArticleSummariesAsDtos(Long articleId) {
+        return summaryMapper.toDtoList(getArticleSummaries(articleId));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SummaryResponseDto> getUserSummariesAsDtos(Long userId, Pageable pageable) {
+        return getUserSummaries(userId, pageable).map(summaryMapper::toDto);
+    }
+
 
     /**
      * Request a new summary for an article

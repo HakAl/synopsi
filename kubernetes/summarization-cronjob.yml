@@ -11,5 +11,24 @@ spec:
           containers:
             - name: summarization
               image: synopsi-summarization:latest
-              command: ["python", "summarization/main.py"]
+              imagePullPolicy: Never
+              command: ["python", "-m", "summarization.main"]
+              workingDir: /app
+              env:
+                # API connectivity
+                - name: API_BASE_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: synopsi-config
+                      key: api-base-url
+                - name: API_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: synopsi-secrets
+                      key: api-username
+                - name: API_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: synopsi-secrets
+                      key: api-password
           restartPolicy: OnFailure

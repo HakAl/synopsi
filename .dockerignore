@@ -1,0 +1,81 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+.gradle
+
+# IDE and editor files
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+*.sublime-project
+*.sublime-workspace
+.classpath
+.project
+.settings
+.apt_generated
+.factorypath
+.sts4-cache
+.springBeans
+nbproject/
+nbbuild/
+nbdist/
+*.pyproj
+
+# Python virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test coverage
+.coverage
+coverage.xml
+*.cover
+*.lcov
+htmlcov/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.flaskenv
+
+# Documentation and notebooks
+docs/
+.ipynb_checkpoints/
+
+# CI/CD
+.github/
+
+# Kubernetes
+kubernetes/
+
+# Miscellaneous
+*.prof
+*.lprof
+.python-version
+.pypirc
+.scrappy
+.zen
+nul
+HELP.md
+LICENSE.md
+CLAUDE.md

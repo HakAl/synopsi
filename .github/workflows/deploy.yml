@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Docker Build"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update ingestion image tag
+        run: |
+          sed -i "s|image: synopsi-ingestion:.*|image: synopsi-ingestion:${{ github.event.workflow_run.head_commit.id }}|g" kubernetes/ingestion-cronjob.yml
+
+      - name: Update summarization image tag
+        run: |
+          sed -i "s|image: synopsi-summarization:.*|image: synopsi-summarization:${{ github.event.workflow_run.head_commit.id }}|g" kubernetes/summarization-cronjob.yml
+
+      - name: Commit updated manifests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add kubernetes/ingestion-cronjob.yml kubernetes/summarization-cronjob.yml
+          git commit -m "chore: update worker image tags to ${{ github.event.workflow_run.head_commit.id }}" || true
+          git push origin main

@@ -92,3 +92,16 @@ dmypy.json
 .pypirc
 .python-version
 ingestion.log
+
+.zen
+# Agent and editor session state (machine-specific, not project content).
+.claude/
+.scrappy/
+.cleanup/
+
+# Worker runtime logs and captured test output.
+*.log
+synopsi-worker/test_output.txt
+
+# Private scratch: disposable diagnostics, snapshots, large logs.
+local/

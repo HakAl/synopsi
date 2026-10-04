@@ -144,13 +144,7 @@ public class AuthService implements UserDetailsService {
         user.setResetTokenExpiry(expiry);
         userRepository.save(user);
 
-        // LOG THE TOKEN FOR DEVELOPMENT (in production, send email)
-        log.warn("=".repeat(80));
-        log.warn("PASSWORD RESET TOKEN FOR: {}", request.getEmail());
-        log.warn("Token: {}", resetToken);
-        log.warn("Expires: {}", expiry);
-        log.warn("Reset URL: http://localhost:8080/reset-password.html?token={}", resetToken);
-        log.warn("=".repeat(80));
+        // In production, send email; avoid logging sensitive reset tokens.
     }
 
     /**

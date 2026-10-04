@@ -2,11 +2,22 @@ import requests
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
+from dataclasses import dataclass, asdict
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ArticleCreationError:
+    """Structured error information for failed article creation."""
+    article_title: str
+    feed_id: Optional[int]
+    error_type: str  # "network", "validation", "server", "unknown"
+    http_status: Optional[int]
+    message: str
 
 
 class SynopsiAPIClient:
@@ -412,12 +423,64 @@ class SynopsiAPIClient:
                 created_article = self.create_article(article)
                 if created_article:
                     results['successful'].append(created_article)
+            except requests.ConnectionError as e:
+                error = ArticleCreationError(
+                    article_title=article.get('title', 'Unknown'),
+                    feed_id=article.get('feedId'),
+                    error_type="network",
+                    http_status=None,
+                    message=f"Connection error: {str(e)}"
+                )
+                logger.warning(f"Network error creating article '{error.article_title}': {error.message}")
+                results['failed'].append(asdict(error))
+            except requests.Timeout as e:
+                error = ArticleCreationError(
+                    article_title=article.get('title', 'Unknown'),
+                    feed_id=article.get('feedId'),
+                    error_type="network",
+                    http_status=None,
+                    message=f"Timeout: {str(e)}"
+                )
+                logger.warning(f"Timeout creating article '{error.article_title}': {error.message}")
+                results['failed'].append(asdict(error))
+            except requests.HTTPError as e:
+                status_code = e.response.status_code if e.response else None
+                if status_code and 400 <= status_code < 500:
+                    error_type = "validation"
+                elif status_code and status_code >= 500:
+                    error_type = "server"
+                else:
+                    error_type = "unknown"
+
+                error = ArticleCreationError(
+                    article_title=article.get('title', 'Unknown'),
+                    feed_id=article.get('feedId'),
+                    error_type=error_type,
+                    http_status=status_code,
+                    message=str(e)
+                )
+                logger.warning(f"HTTP error creating article '{error.article_title}': {error.message}")
+                results['failed'].append(asdict(error))
+            except ValueError as e:
+                error = ArticleCreationError(
+                    article_title=article.get('title', 'Unknown'),
+                    feed_id=article.get('feedId'),
+                    error_type="validation",
+                    http_status=None,
+                    message=str(e)
+                )
+                logger.warning(f"Validation error creating article '{error.article_title}': {error.message}")
+                results['failed'].append(asdict(error))
             except Exception as e:
-                logger.warning(f"Failed to create article '{article.get('title', 'Unknown')}': {e}")
-                results['failed'].append({
-                    'article': article,
-                    'error': str(e)
-                })
+                error = ArticleCreationError(
+                    article_title=article.get('title', 'Unknown'),
+                    feed_id=article.get('feedId'),
+                    error_type="unknown",
+                    http_status=None,
+                    message=str(e)
+                )
+                logger.warning(f"Unknown error creating article '{error.article_title}': {error.message}")
+                results['failed'].append(asdict(error))
 
         logger.info(
             f"Batch complete: {len(results['successful'])} successful, "

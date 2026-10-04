@@ -38,15 +38,19 @@ async function loadTopics() {
 
 async function loadFeed() {
     try {
+        showLoading('feedContainer');
+
         // getPersonalizedFeed returns paginated data
         const feedData = await api.getPersonalizedFeed(0, 20);
 
         // Handle both array and paginated response
         summaries = feedData.content || feedData;
 
+        hideLoading('feedContainer');
         renderFeed();
     } catch (error) {
         console.error('Error loading feed:', error);
+        hideLoading('feedContainer');
         showError('Failed to load your personalized feed.');
         document.getElementById('emptyState').style.display = 'block';
         document.getElementById('feedContainer').style.display = 'none';
@@ -60,7 +64,7 @@ function renderFeed() {
     let filtered = summaries;
     if (currentTopicFilter !== 'all') {
         filtered = summaries.filter(s =>
-            s.topics && s.topics.some(t => t.toLowerCase() === currentTopicFilter.toLowerCase())
+            s.topicNames && s.topicNames.some(t => t.toLowerCase() === currentTopicFilter.toLowerCase())
         );
     }
 
@@ -84,7 +88,7 @@ function createSummaryCard(summary) {
     const card = document.createElement('div');
     card.className = 'summary-card';
 
-    const date = new Date(summary.publishedAt).toLocaleDateString();
+    const date = new Date(summary.publicationDate).toLocaleDateString();
 
     // Create header
     const header = document.createElement('div');
@@ -98,7 +102,7 @@ function createSummaryCard(summary) {
 
     const meta = document.createElement('div');
     meta.className = 'summary-meta';
-    meta.textContent = `${summary.source} · ${date}`;
+    meta.textContent = `${summary.sourceName} · ${date}`;
 
     headerContent.appendChild(title);
     headerContent.appendChild(meta);
@@ -107,12 +111,12 @@ function createSummaryCard(summary) {
     // Create preview
     const preview = document.createElement('div');
     preview.className = 'summary-preview';
-    preview.textContent = summary.preview || (summary.summary?.substring(0, 150) + '...');
+    preview.textContent = summary.summary ? summary.summary.substring(0, 150) + '...' : (summary.description || 'No summary yet.');
 
     // Create full summary section
     const fullSummary = document.createElement('div');
     fullSummary.className = 'summary-full';
-    fullSummary.id = `summary-${summary.id}`;
+    fullSummary.id = `summary-${summary.articleId}`;
 
     const summaryText = document.createElement('p');
     summaryText.textContent = summary.summary;
@@ -121,7 +125,7 @@ function createSummaryCard(summary) {
     actions.className = 'summary-actions';
 
     const link = document.createElement('a');
-    link.href = `article.html?id=${summary.id}`;
+    link.href = `article.html?id=${summary.articleId}`;
     link.target = '_blank';
     link.textContent = 'Read full article →';
 
@@ -136,7 +140,7 @@ function createSummaryCard(summary) {
 
     card.addEventListener('click', (e) => {
         if (e.target.tagName !== 'A') {
-            toggleSummary(summary.id);
+            toggleSummary(summary.articleId);
         }
     });
 

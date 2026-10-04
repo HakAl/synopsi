@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: synopsi-config
+data:
+  api-base-url: "http://synopsi-api:8080"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: synopsi-secrets
+type: Opaque
+data:
+  api-username: c3lub3BzaQ==
+  api-password: c3lub3BzaV9wYXNz
+  jwt-secret: c3lub3BzaV9qd3Rfc2VjcmV0X2tleV9sb2NhbF9kZXZlbG9wbWVudA==

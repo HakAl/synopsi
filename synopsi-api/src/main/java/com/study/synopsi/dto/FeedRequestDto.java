@@ -24,7 +24,8 @@ public class FeedRequestDto {
     @NotNull(message = "Feed type is required")
     private Feed.FeedType feedType;
 
-    @Size(max = 200, message = "Title cannot exceed 200 characters")
+    @NotBlank(message = "Title cannot be blank")
+    @Size(max = 255, message = "Title cannot exceed 255 characters")
     private String title;
 
     @Size(max = 5000, message = "Description cannot exceed 5000 characters")

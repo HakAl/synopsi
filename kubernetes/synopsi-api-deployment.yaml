@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synopsi-api
+  labels:
+    app: synopsi-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: synopsi-api
+  template:
+    metadata:
+      labels:
+        app: synopsi-api
+    spec:
+      containers:
+        - name: synopsi-api
+          image: synopsi-api:latest
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            # Database configuration
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:h2:mem:testdb"
+            - name: SPRING_DATASOURCE_DRIVERCLASSNAME
+              value: "org.h2.Driver"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "sa"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: ""
+            - name: SPRING_JPA_DATABASE_PLATFORM
+              value: "org.hibernate.dialect.H2Dialect"
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
+            # JWT configuration
+            - name: SYNOPSI_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: synopsi-secrets
+                  key: jwt-secret
+            - name: SYNOPSI_JWT_EXPIRATION
+              value: "86400000"
+            # Personalization configuration
+            - name: SYNOPSI_PERSONALIZATION_WEIGHTS_TOPIC_PREFERENCE
+              value: "0.40"
+            - name: SYNOPSI_PERSONALIZATION_WEIGHTS_READING_HISTORY
+              value: "0.30"
+            - name: SYNOPSI_PERSONALIZATION_WEIGHTS_POSITIVE_FEEDBACK
+              value: "0.20"
+            - name: SYNOPSI_PERSONALIZATION_WEIGHTS_RECENCY
+              value: "0.10"
+            # Cache configuration
+            - name: SPRING_CACHE_TYPE
+              value: "caffeine"
+            - name: SPRING_CACHE_CAFFEINE_SPEC
+              value: "maximumSize=1000,expireAfterWrite=10m"
+            - name: SPRING_CACHE_CACHE_NAMES
+              value: "personalizedFeed,feeds,sources,articles"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          securityContext:
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false

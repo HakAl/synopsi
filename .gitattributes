@@ -1,0 +1,32 @@
+# Normalize all text to LF in the repository, check out native on Windows.
+* text=auto eol=lf
+
+# Windows-only scripts are stored and checked out byte for byte. Using
+# eol=crlf here would make the checked-out file differ from the stored blob,
+# which breaks a byte-exact release export for no practical gain: nothing in
+# this project runs the batch wrapper.
+*.bat -text
+*.cmd -text
+
+# Shell scripts and the Gradle wrapper must stay LF to remain executable.
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Binary: never touch.
+*.jar binary
+*.war binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.db binary
+*.db-shm binary
+*.db-wal binary
+*.pt binary
+*.bin binary
+*.safetensors binary

@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  synopsi-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - synopsi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/swagger-ui.html"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  synopsi-ingestion:
+    build:
+      context: .
+      dockerfile: synopsi-worker/Dockerfile.ingestion
+    environment:
+      - API_BASE_URL=http://synopsi-api:8080
+      - API_USERNAME=${API_USERNAME:-admin}
+      - API_PASSWORD=${API_PASSWORD:-password}
+      - RSS_FEED_URLS=${RSS_FEED_URLS}
+    depends_on:
+      synopsi-api:
+        condition: service_healthy
+    networks:
+      - synopsi-network
+    restart: unless-stopped
+
+  synopsi-summarization:
+    build:
+      context: .
+      dockerfile: synopsi-worker/Dockerfile.summarization
+    environment:
+      - API_BASE_URL=http://synopsi-api:8080
+      - API_USERNAME=${API_USERNAME:-admin}
+      - API_PASSWORD=${API_PASSWORD:-password}
+    depends_on:
+      synopsi-api:
+        condition: service_healthy
+    networks:
+      - synopsi-network
+    restart: unless-stopped
+
+networks:
+  synopsi-network:
+    driver: bridge
