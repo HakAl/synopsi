@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,14 @@ class ArticleCreationError:
     error_type: str  # "network", "validation", "server", "unknown"
     http_status: Optional[int]
     message: str
+
+
+class DuplicateArticleError(Exception):
+    """The API already holds an article with this originalUrl (HTTP 409)."""
+
+    def __init__(self, article: Dict, message: str):
+        super().__init__(message)
+        self.article = article
 
 
 class SynopsiAPIClient:
@@ -239,13 +247,17 @@ class SynopsiAPIClient:
                 created_source = response.json()
                 logger.info(f"Successfully created source ID: {created_source.get('id')} - {domain}")
                 return created_source
-            elif response.status_code == 400:
-                logger.error(f"Bad request creating source: {response.text}")
-                raise ValueError(f"Invalid source data: {response.text}")
+            elif response.status_code in (400, 409):
+                # 400: the API's own uniqueness pre-check or validation; 409: lost the insert race
+                logger.warning(f"Source not created ({response.status_code}): {response.text}")
+                raise ValueError(f"Source not created: {response.text}")
             else:
                 logger.error(f"Failed to create source: {response.status_code} - {response.text}")
                 response.raise_for_status()
 
+        except ValueError:
+            # 400/409 already logged above; ensure_source recovers from these
+            raise
         except requests.Timeout:
             logger.error(f"Timeout creating source for {domain}")
             raise
@@ -273,6 +285,7 @@ class SynopsiAPIClient:
             'sourceId': source_id,
             'feedUrl': feed_url,
             'feedType': 'RSS',
+            'title': (self._extract_domain_from_url(feed_url) or feed_url)[:200],
             'topicId': None,
             'crawlFrequencyMinutes': 60,
             'isActive': True,
@@ -293,13 +306,17 @@ class SynopsiAPIClient:
                 created_feed = response.json()
                 logger.info(f"Successfully created feed ID: {created_feed.get('id')}")
                 return created_feed
-            elif response.status_code == 400:
-                logger.error(f"Bad request creating feed: {response.text}")
-                raise ValueError(f"Invalid feed data: {response.text}")
+            elif response.status_code in (400, 409):
+                # 400: the API's own uniqueness pre-check or validation; 409: lost the insert race
+                logger.warning(f"Feed not created ({response.status_code}): {response.text}")
+                raise ValueError(f"Feed not created: {response.text}")
             else:
                 logger.error(f"Failed to create feed: {response.status_code} - {response.text}")
                 response.raise_for_status()
 
+        except ValueError:
+            # 400/409 already logged above; ensure_feed recovers from these
+            raise
         except requests.Timeout:
             logger.error(f"Timeout creating feed for {feed_url}")
             raise
@@ -308,6 +325,74 @@ class SynopsiAPIClient:
             raise
         except Exception as e:
             logger.error(f"Unexpected error creating feed: {e}", exc_info=True)
+            raise
+
+    def get_source_by_name(self, name: str) -> Optional[Dict]:
+        """Look up a source by name via GET /api/v1/sources/by-name/{name}. None if absent."""
+        url = f"{self.base_url}/api/v1/sources/by-name/{quote(name, safe='')}"
+        response = self._make_request('GET', url, timeout=self.timeout)
+
+        if response.status_code == 200:
+            return response.json()
+        if response.status_code == 404:
+            return None
+        logger.error(f"Failed to look up source '{name}': {response.status_code} - {response.text}")
+        response.raise_for_status()
+        return None
+
+    def ensure_source(self, feed_url: str) -> Optional[Dict]:
+        """
+        Return the source for a feed URL, creating it only if it does not exist.
+        Sources are named by domain, so this is what makes re-runs idempotent.
+        """
+        domain = self._extract_domain_from_url(feed_url)
+
+        existing = self.get_source_by_name(domain)
+        if existing:
+            logger.info(f"Reusing existing source ID: {existing.get('id')} - {domain}")
+            return existing
+
+        try:
+            return self.create_source(feed_url)
+        except ValueError:
+            # Lost a race with another run, or the name differs only by case
+            existing = self.get_source_by_name(domain)
+            if existing:
+                logger.info(f"Source '{domain}' appeared concurrently; reusing ID {existing.get('id')}")
+                return existing
+            raise
+
+    def get_feeds_by_source(self, source_id: int) -> List[Dict]:
+        """List feeds for a source via GET /api/v1/feeds/source/{sourceId}."""
+        url = f"{self.base_url}/api/v1/feeds/source/{source_id}"
+        response = self._make_request('GET', url, timeout=self.timeout)
+
+        if response.status_code == 200:
+            return response.json() or []
+        if response.status_code == 404:
+            return []
+        logger.error(f"Failed to list feeds for source {source_id}: {response.status_code} - {response.text}")
+        response.raise_for_status()
+        return []
+
+    def ensure_feed(self, feed_url: str, source_id: int) -> Optional[Dict]:
+        """
+        Return the feed for a URL under a source, creating it only if it does not exist.
+        """
+        for feed in self.get_feeds_by_source(source_id):
+            if feed.get('feedUrl') == feed_url:
+                logger.info(f"Reusing existing feed ID: {feed.get('id')} for URL: {feed_url}")
+                return feed
+
+        try:
+            return self.create_feed(feed_url, source_id)
+        except ValueError:
+            # Feed URL is globally unique: it may have been created by a concurrent
+            # run, or it may already belong to a different source
+            for feed in self.get_all_feeds():
+                if feed.get('feedUrl') == feed_url:
+                    logger.info(f"Feed already exists (source ID {feed.get('sourceId')}); reusing ID {feed.get('id')}")
+                    return feed
             raise
 
     def get_all_feeds(self) -> List[Dict]:
@@ -354,6 +439,10 @@ class SynopsiAPIClient:
                 logger.info(f"Successfully created article ID: {created_article.get('id')}")
                 return created_article
 
+            elif response.status_code == 409:
+                logger.info(f"Article already exists, skipping: {article.get('originalUrl')}")
+                raise DuplicateArticleError(article, response.text)
+
             elif 400 <= response.status_code < 500:
                 logger.error(f"Client error creating article: {response.status_code} - {response.text}")
                 raise ValueError(f"Invalid article data: {response.text}")
@@ -362,6 +451,10 @@ class SynopsiAPIClient:
                 logger.error(f"Server error creating article: {response.status_code} - {response.text}")
                 response.raise_for_status()
 
+        except (DuplicateArticleError, ValueError):
+            # Duplicates are expected on re-runs and client errors are already logged
+            # above; neither warrants an "unexpected error" traceback
+            raise
         except requests.Timeout:
             logger.error(f"Timeout creating article: {article.get('title')}")
             raise
@@ -413,7 +506,8 @@ class SynopsiAPIClient:
         """Create multiple articles and return success/failure results."""
         results = {
             'successful': [],
-            'failed': []
+            'failed': [],
+            'duplicates': []
         }
 
         logger.info(f"Creating {len(articles)} articles in batch")
@@ -423,6 +517,12 @@ class SynopsiAPIClient:
                 created_article = self.create_article(article)
                 if created_article:
                     results['successful'].append(created_article)
+            except DuplicateArticleError as e:
+                results['duplicates'].append({
+                    'title': article.get('title', 'Unknown'),
+                    'originalUrl': article.get('originalUrl'),
+                    'feedId': article.get('feedId'),
+                })
             except requests.ConnectionError as e:
                 error = ArticleCreationError(
                     article_title=article.get('title', 'Unknown'),
@@ -484,6 +584,7 @@ class SynopsiAPIClient:
 
         logger.info(
             f"Batch complete: {len(results['successful'])} successful, "
+            f"{len(results['duplicates'])} duplicate, "
             f"{len(results['failed'])} failed"
         )
 

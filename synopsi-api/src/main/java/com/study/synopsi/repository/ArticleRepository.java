@@ -21,6 +21,11 @@ public interface ArticleRepository extends JpaRepository<Article, Long>,
     // - count(Specification<Article> spec)
     // etc.
 
+    /**
+     * Used to reject duplicate submissions before hitting the unique constraint.
+     */
+    boolean existsByOriginalUrl(String originalUrl);
+
     // Add custom queries here if needed, for example:
     // List<Article> findByStatus(Article.ArticleStatus status);
     // List<Article> findByPublicationDateBetween(LocalDateTime start, LocalDateTime end);

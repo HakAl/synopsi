@@ -297,10 +297,10 @@ class FeedControllerTest {
         }
 
         @Test
-        @DisplayName("Should return 400 for title exceeding 255 characters")
-        void shouldReturn400ForTitleExceeding255Characters() throws Exception {
+        @DisplayName("Should return 400 for title exceeding 200 characters")
+        void shouldReturn400ForTitleExceeding200Characters() throws Exception {
             // Given
-            String longTitle = "a".repeat(256);
+            String longTitle = "a".repeat(201);
             testFeedRequestDto.setTitle(longTitle);
 
             // When/Then
@@ -308,7 +308,7 @@ class FeedControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot exceed 255 characters")));
+                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot exceed 200 characters")));
 
             verify(feedService, never()).createFeed(any(FeedRequestDto.class));
         }
@@ -386,10 +386,10 @@ class FeedControllerTest {
         }
 
         @Test
-        @DisplayName("Should return 400 for title exceeding 255 characters")
-        void shouldReturn400ForTitleExceeding255Characters() throws Exception {
+        @DisplayName("Should return 400 for title exceeding 200 characters")
+        void shouldReturn400ForTitleExceeding200Characters() throws Exception {
             // Given
-            String longTitle = "a".repeat(256);
+            String longTitle = "a".repeat(201);
             testFeedRequestDto.setTitle(longTitle);
 
             // When/Then
@@ -397,7 +397,7 @@ class FeedControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(testFeedRequestDto)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot exceed 255 characters")));
+                    .andExpect(jsonPath("$.fieldErrors.title", containsString("Title cannot exceed 200 characters")));
 
             verify(feedService, never()).updateFeed(anyLong(), any(FeedRequestDto.class));
         }

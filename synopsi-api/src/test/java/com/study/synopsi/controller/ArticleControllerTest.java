@@ -11,6 +11,8 @@ import com.study.synopsi.exception.GlobalExceptionHandler;
 import com.study.synopsi.service.ArticleService;
 import com.study.synopsi.service.AuthService;
 import com.study.synopsi.exception.ArticleNotFoundException;
+import com.study.synopsi.exception.ArticleAlreadyExistsException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,6 +25,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -230,6 +233,114 @@ public class ArticleControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Validation Failed"))
                 .andExpect(jsonPath("$.fieldErrors.title").exists());
+    }
+
+    @Test
+    void whenCreateArticle_withDuplicateUrl_thenReturn409() throws Exception {
+        // Given: the article was already ingested on a previous run
+        ArticleRequestDto requestDto = ArticleRequestDto.builder()
+                .title("Test Title")
+                .originalUrl("http://example.com/already-there")
+                .content("Content")
+                .feedId(1L)
+                .build();
+        when(articleService.createArticle(any(ArticleRequestDto.class)))
+                .thenThrow(new ArticleAlreadyExistsException("http://example.com/already-there"));
+
+        // When/Then: a duplicate is a conflict, not a server error
+        mockMvc.perform(post("/api/v1/articles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Article already exists with originalUrl: http://example.com/already-there"));
+    }
+
+    @Test
+    void whenCreateArticle_losesUniqueConstraintRace_thenReturn409() throws Exception {
+        // Given: two workers passed the existence check and this one lost the insert race
+        ArticleRequestDto requestDto = ArticleRequestDto.builder()
+                .title("Test Title")
+                .originalUrl("http://example.com/raced")
+                .content("Content")
+                .feedId(1L)
+                .build();
+        when(articleService.createArticle(any(ArticleRequestDto.class)))
+                .thenThrow(new DataIntegrityViolationException("could not execute statement",
+                        new SQLException("Unique index or primary key violation: \"PUBLIC.UK_ARTICLES_ORIGINAL_URL\"",
+                                "23505")));
+
+        // When/Then: still a conflict, not a 500 that the worker would retry and count as failed
+        mockMvc.perform(post("/api/v1/articles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Request conflicts with an existing record"));
+    }
+
+    @Test
+    void whenCreateArticle_uniqueViolationBySqlStateOnly_thenReturn409() throws Exception {
+        // Given: a driver that reports SQLSTATE 23505 with a message that does not say "unique"
+        ArticleRequestDto requestDto = ArticleRequestDto.builder()
+                .title("Test Title")
+                .originalUrl("http://example.com/raced-again")
+                .content("Content")
+                .feedId(1L)
+                .build();
+        when(articleService.createArticle(any(ArticleRequestDto.class)))
+                .thenThrow(new DataIntegrityViolationException("statement failed",
+                        new SQLException("ERROR: key (original_url) already present", "23505")));
+
+        mockMvc.perform(post("/api/v1/articles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void whenCreateArticle_valueTooLongWithUniqueInRejectedValue_thenReturn400NotConflict() throws Exception {
+        // Given: H2 reports an overlong title with SQLSTATE 22001 and echoes the rejected
+        // value, which here starts with the word "Unique". Text matching would call this a
+        // duplicate and the worker would drop the article; SQLSTATE says otherwise.
+        ArticleRequestDto requestDto = ArticleRequestDto.builder()
+                .title("Unique " + "x".repeat(500))
+                .originalUrl("http://example.com/long-title")
+                .content("Content")
+                .feedId(1L)
+                .build();
+        when(articleService.createArticle(any(ArticleRequestDto.class)))
+                .thenThrow(new DataIntegrityViolationException("could not execute statement",
+                        new SQLException("Value too long for column \"TITLE CHARACTER VARYING(500)\": "
+                                + "'Unique duplicate key xxxxxxxx... (507)'", "22001")));
+
+        mockMvc.perform(post("/api/v1/articles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void whenCreateArticle_violatesNonUniqueConstraint_thenReturn400NotConflict() throws Exception {
+        // Given: an RSS entry without a date reaches the NOT NULL column. This must not be
+        // reported as a duplicate, or the worker would silently skip the article forever.
+        ArticleRequestDto requestDto = ArticleRequestDto.builder()
+                .title("Test Title")
+                .originalUrl("http://example.com/no-date")
+                .content("Content")
+                .feedId(1L)
+                .build();
+        when(articleService.createArticle(any(ArticleRequestDto.class)))
+                .thenThrow(new DataIntegrityViolationException("could not execute statement",
+                        new RuntimeException("NULL not allowed for column \"PUBLICATION_DATE\"")));
+
+        mockMvc.perform(post("/api/v1/articles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
     }
 
     @Test

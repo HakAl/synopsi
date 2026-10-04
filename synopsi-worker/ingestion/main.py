@@ -41,47 +41,47 @@ class IngestionWorker:
             logger.error("API health check failed. Aborting ingestion.")
             return self._build_error_result("API unavailable")
 
-        # Step 2: For each feed URL, create source and feed
-        logger.info(f"Creating sources and feeds for {len(self.feed_urls)} URLs")
+        # Step 2: For each feed URL, find or create its source and feed.
+        # Lookups come first so a re-run against an existing database reuses rows
+        # instead of failing on the unique name and feedUrl constraints.
+        logger.info(f"Resolving sources and feeds for {len(self.feed_urls)} URLs")
 
         for feed_url in self.feed_urls:
             try:
-                # Create source from feed URL
-                logger.info(f"Creating source for feed URL: {feed_url}")
-                source = self.api_client.create_source(feed_url)
+                source = self.api_client.ensure_source(feed_url)
 
                 if not source or 'id' not in source:
-                    logger.error(f"Failed to create source for {feed_url}")
+                    logger.error(f"Failed to resolve source for {feed_url}")
                     continue
 
                 source_id = source['id']
-                logger.info(f"Created source ID: {source_id}")
 
-                # Create feed with the source ID
-                logger.info(f"Creating feed for URL: {feed_url}")
-                feed = self.api_client.create_feed(feed_url, source_id)
+                feed = self.api_client.ensure_feed(feed_url, source_id)
 
                 if not feed or 'id' not in feed:
-                    logger.error(f"Failed to create feed for {feed_url}")
+                    logger.error(f"Failed to resolve feed for {feed_url}")
                     continue
 
                 feed_id = feed['id']
+                # A feed URL is unique across sources; if it already belonged to
+                # another source, record the owner the API reports, not this loop's
+                owner_source_id = feed.get('sourceId', source_id)
                 self.created_feeds.append({
                     'feedId': feed_id,
                     'feedUrl': feed_url,
-                    'sourceId': source_id
+                    'sourceId': owner_source_id
                 })
-                logger.info(f"Created feed ID: {feed_id} for URL: {feed_url}")
+                logger.info(f"Using feed ID: {feed_id} (source ID: {owner_source_id}) for URL: {feed_url}")
 
             except Exception as e:
-                logger.error(f"Error creating source/feed for {feed_url}: {e}", exc_info=True)
+                logger.error(f"Error resolving source/feed for {feed_url}: {e}", exc_info=True)
                 continue
 
         if not self.created_feeds:
-            logger.error("No feeds were created successfully. Aborting ingestion.")
-            return self._build_error_result("No feeds created")
+            logger.error("No feeds could be resolved. Aborting ingestion.")
+            return self._build_error_result("No feeds resolved")
 
-        logger.info(f"Successfully created {len(self.created_feeds)} feeds")
+        logger.info(f"Resolved {len(self.created_feeds)} feeds")
 
         # Step 3: Fetch articles from feeds (RSS or direct web pages)
         logger.info(f"Fetching articles from {len(self.created_feeds)} feeds")
@@ -140,22 +140,33 @@ class IngestionWorker:
 
         successful_count = len(results['successful'])
         failed_count = len(results['failed'])
+        duplicate_count = len(results.get('duplicates', []))
 
-        # Log failures
+        if duplicate_count > 0:
+            logger.info(f"{duplicate_count} articles were already ingested and were skipped")
+
+        # Log failures. Entries are ArticleCreationError dicts: article_title, feed_id,
+        # error_type, http_status, message.
         if failed_count > 0:
             logger.warning(f"{failed_count} articles failed to post:")
             for failure in results['failed'][:5]:
-                logger.warning(f"  - {failure['article'].get('title', 'Unknown')}: {failure['error']}")
+                logger.warning(
+                    f"  - {failure.get('article_title', 'Unknown')} "
+                    f"[{failure.get('error_type', 'unknown')}"
+                    f"{', HTTP ' + str(failure['http_status']) if failure.get('http_status') else ''}]: "
+                    f"{failure.get('message', '')}"
+                )
             if failed_count > 5:
                 logger.warning(f"  ... and {failed_count - 5} more")
 
         # Step 5: Build result summary
-        result = self._build_result(start_time, feed_stats, successful_count, failed_count)
+        result = self._build_result(start_time, feed_stats, successful_count, failed_count, duplicate_count)
 
         logger.info("=" * 60)
         logger.info(f"Ingestion run completed in {result['duration_seconds']}s")
-        logger.info(f"Feeds created: {len(self.created_feeds)}")
-        logger.info(f"Articles posted: {successful_count}/{len(all_articles)}")
+        logger.info(f"Feeds processed: {len(self.created_feeds)}")
+        logger.info(f"Articles posted: {successful_count}/{len(all_articles)} "
+                    f"({duplicate_count} duplicate, {failed_count} failed)")
         logger.info("=" * 60)
 
         return result
@@ -165,7 +176,8 @@ class IngestionWorker:
         start_time: datetime,
         feed_stats: dict,
         successful: int,
-        failed: int
+        failed: int,
+        duplicates: int = 0
     ) -> dict:
         """Build result summary dictionary."""
         end_time = datetime.now()
@@ -181,6 +193,7 @@ class IngestionWorker:
             'feed_stats': feed_stats,
             'articles_fetched': sum(feed_stats.values()),
             'articles_posted_successfully': successful,
+            'articles_duplicate': duplicates,
             'articles_failed': failed
         }
 
@@ -191,6 +204,7 @@ class IngestionWorker:
             'error': error_message,
             'feeds_created': len(self.created_feeds),
             'articles_posted_successfully': 0,
+            'articles_duplicate': 0,
             'articles_failed': 0
         }
     

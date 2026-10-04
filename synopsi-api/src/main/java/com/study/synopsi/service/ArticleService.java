@@ -4,6 +4,7 @@ import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
 import com.study.synopsi.dto.PagedResponseDto;
 import com.study.synopsi.dto.filter.ArticleFilterParams;
+import com.study.synopsi.exception.ArticleAlreadyExistsException;
 import com.study.synopsi.exception.ArticleNotFoundException;
 import com.study.synopsi.mapper.ArticleMapper;
 import com.study.synopsi.model.Article;
@@ -75,6 +76,12 @@ public class ArticleService {
 
     @Transactional
     public ArticleResponseDto createArticle(ArticleRequestDto requestDto) {
+        // originalUrl is unique; reject re-submissions (ingestion re-runs) as a conflict
+        // instead of letting the constraint violation surface as a 500
+        if (articleRepository.existsByOriginalUrl(requestDto.getOriginalUrl())) {
+            throw new ArticleAlreadyExistsException(requestDto.getOriginalUrl());
+        }
+
         // Save article
         Article article = articleMapper.toEntity(requestDto);
         Article savedArticle = articleRepository.save(article);

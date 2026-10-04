@@ -302,14 +302,14 @@ public class FeedController {
             }
         }
 
-        // Validate title is not blank and <= 255 characters
+        // Validate title is not blank and <= 200 characters
         if (request.getTitle() != null) {
             String title = request.getTitle().trim();
             if (title.isEmpty()) {
                 throw new IllegalArgumentException("Title cannot be blank");
             }
-            if (title.length() > 255) {
-                throw new IllegalArgumentException("Title cannot exceed 255 characters (current length: " + title.length() + ")");
+            if (title.length() > 200) {
+                throw new IllegalArgumentException("Title cannot exceed 200 characters (current length: " + title.length() + ")");
             }
         }
     }

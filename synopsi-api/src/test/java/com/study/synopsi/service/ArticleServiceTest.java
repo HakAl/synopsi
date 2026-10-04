@@ -2,6 +2,7 @@ package com.study.synopsi.service;
 
 import com.study.synopsi.dto.ArticleRequestDto;
 import com.study.synopsi.dto.ArticleResponseDto;
+import com.study.synopsi.exception.ArticleAlreadyExistsException;
 import com.study.synopsi.exception.ArticleNotFoundException;
 import com.study.synopsi.mapper.ArticleMapper;
 import com.study.synopsi.model.Article;
@@ -208,6 +209,23 @@ class ArticleServiceTest {
                     any(Summary.SummaryType.class),
                     any(Summary.SummaryLength.class)
             );
+        }
+
+        @Test
+        @DisplayName("createArticle should reject a duplicate originalUrl with 409 semantics and not save")
+        void createArticle_WhenOriginalUrlExists_ShouldThrowAndNotSave() {
+            // Arrange: the ingestion worker re-posts an article it already sent on a previous run
+            when(articleRepository.existsByOriginalUrl(requestDto.getOriginalUrl())).thenReturn(true);
+
+            // Act & Assert
+            ArticleAlreadyExistsException exception = assertThrows(
+                    ArticleAlreadyExistsException.class,
+                    () -> articleService.createArticle(requestDto)
+            );
+
+            assertThat(exception.getMessage()).contains(requestDto.getOriginalUrl());
+            verify(articleRepository, never()).save(any(Article.class));
+            verify(summaryService, never()).requestSummary(anyLong(), any(), any(), any());
         }
 
         @Test

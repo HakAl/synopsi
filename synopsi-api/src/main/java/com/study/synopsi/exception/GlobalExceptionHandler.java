@@ -1,5 +1,7 @@
 package com.study.synopsi.exception;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +21,7 @@ import java.util.Map;
  * Global exception handler for API errors
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
@@ -110,6 +114,79 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
+
+    /**
+     * Handle ArticleAlreadyExistsException (409)
+     */
+    @ExceptionHandler(ArticleAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleArticleAlreadyExists(ArticleAlreadyExistsException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Handle database integrity violations.
+     * A unique-constraint violation (the check-then-act race where two requests
+     * pass an existence check and the loser hits the index) is a 409 so workers
+     * can treat it as a duplicate. Any other integrity failure (missing required
+     * value, value too long, bad reference) is a 400: the request data is wrong
+     * and must not be mistaken for a duplicate, or the worker would skip the
+     * article forever. Classification is by SQLSTATE only. Driver details are
+     * logged, not returned.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        Throwable root = ex.getMostSpecificCause();
+        String detail = root != null && root.getMessage() != null ? root.getMessage() : String.valueOf(ex.getMessage());
+
+        if (isUniqueConstraintViolation(ex)) {
+            log.warn("Unique constraint violation: {}", detail);
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.CONFLICT.value(),
+                    "Request conflicts with an existing record",
+                    LocalDateTime.now()
+            );
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+        }
+
+        log.warn("Data integrity violation: {}", detail);
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Request violates a data constraint (missing required value, value too long, or invalid reference)",
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
+     * Structured classification only. The first SQLException in the cause chain
+     * is authoritative: SQLSTATE 23505 (unique_violation in H2 and PostgreSQL)
+     * means a duplicate, any other state means something else went wrong.
+     * Error text is never consulted: drivers embed the rejected value in
+     * messages (H2's 22001 "Value too long" does), so a title that happens to
+     * start with "Unique" must not be classified as a duplicate.
+     * No SQLException at all (for example Hibernate rejecting a null
+     * non-nullable property before the statement runs) is not a duplicate.
+     */
+    private boolean isUniqueConstraintViolation(DataIntegrityViolationException ex) {
+        Throwable t = ex;
+        while (t != null) {
+            if (t instanceof SQLException sqlEx) {
+                return UNIQUE_VIOLATION_SQLSTATE.equals(sqlEx.getSQLState());
+            }
+            if (t.getCause() == t) {
+                break;
+            }
+            t = t.getCause();
+        }
+        return false;
+    }
+
+    private static final String UNIQUE_VIOLATION_SQLSTATE = "23505";
 
     /**
      * Handle InvalidFeedException (400)
