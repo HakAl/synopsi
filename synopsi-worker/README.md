@@ -67,6 +67,16 @@ Requires `.env` file with:
 - `API_PASSWORD` - API password
 - `RSS_FEED_URLS` - Comma-separated feed URLs (RSS or direct web pages)
 
+The API creates this account on startup when it is started with the matching
+`SYNOPSI_WORKER_USERNAME` and `SYNOPSI_WORKER_PASSWORD` environment variables
+(docker-compose and the Kubernetes manifests already wire these). For a bare
+`./gradlew bootRun`, either export those two variables before starting the API
+or register the account once via `POST /api/v1/auth/register`.
+
+Seeding only creates a missing account. If you rotate the worker password in
+the environment, the stored password is not updated: change it through the
+API (or reset the database) and update the workers' `API_PASSWORD` to match.
+
 ### Summarization Worker
 
 ```bash

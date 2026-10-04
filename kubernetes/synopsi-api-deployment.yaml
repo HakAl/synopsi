@@ -44,6 +44,17 @@ spec:
                   key: jwt-secret
             - name: SYNOPSI_JWT_EXPIRATION
               value: "86400000"
+            # Worker service account, seeded on startup; CronJobs log in with the same secret
+            - name: SYNOPSI_WORKER_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: synopsi-secrets
+                  key: api-username
+            - name: SYNOPSI_WORKER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: synopsi-secrets
+                  key: api-password
             # Personalization configuration
             - name: SYNOPSI_PERSONALIZATION_WEIGHTS_TOPIC_PREFERENCE
               value: "0.40"

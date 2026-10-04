@@ -9,6 +9,9 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      # Seeds the account the workers log in with (same defaults as below)
+      - SYNOPSI_WORKER_USERNAME=${API_USERNAME:-worker}
+      - SYNOPSI_WORKER_PASSWORD=${API_PASSWORD:-password}
     networks:
       - synopsi-network
     healthcheck:
@@ -24,7 +27,7 @@ services:
       dockerfile: synopsi-worker/Dockerfile.ingestion
     environment:
       - API_BASE_URL=http://synopsi-api:8080
-      - API_USERNAME=${API_USERNAME:-admin}
+      - API_USERNAME=${API_USERNAME:-worker}
       - API_PASSWORD=${API_PASSWORD:-password}
       - RSS_FEED_URLS=${RSS_FEED_URLS}
     depends_on:
@@ -40,7 +43,7 @@ services:
       dockerfile: synopsi-worker/Dockerfile.summarization
     environment:
       - API_BASE_URL=http://synopsi-api:8080
-      - API_USERNAME=${API_USERNAME:-admin}
+      - API_USERNAME=${API_USERNAME:-worker}
       - API_PASSWORD=${API_PASSWORD:-password}
     depends_on:
       synopsi-api:
