@@ -1,6 +1,9 @@
 package com.study.synopsi.service;
 
 import com.study.synopsi.dto.*;
+import com.study.synopsi.exception.InvalidRequestException;
+import com.study.synopsi.exception.ResourceConflictException;
+import com.study.synopsi.exception.UserNotFoundException;
 import com.study.synopsi.model.User;
 import com.study.synopsi.model.UserPreference;
 import com.study.synopsi.repository.ReadingHistoryRepository;
@@ -37,7 +40,7 @@ public class UserService {
         
         // Validate email uniqueness
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists: " + request.getEmail());
+            throw new ResourceConflictException("Email already exists: " + request.getEmail());
         }
         
         // Note: Username doesn't need to be unique per requirements
@@ -65,7 +68,7 @@ public class UserService {
     public UserResponseDto getUserById(Long userId) {
         log.info("Fetching user with ID: {}", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
         return toUserResponseDto(user);
     }
 
@@ -76,7 +79,7 @@ public class UserService {
     public UserResponseDto getUserByEmail(String email) {
         log.info("Fetching user with email: {}", email);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new UserNotFoundException("email", email));
         return toUserResponseDto(user);
     }
 
@@ -87,7 +90,7 @@ public class UserService {
     public UserResponseDto getUserByUsername(String username) {
         log.info("Fetching user with username: {}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new UserNotFoundException("username", username));
         return toUserResponseDto(user);
     }
 
@@ -131,12 +134,12 @@ public class UserService {
         log.info("Updating user with ID: {}", userId);
         
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
         
         // Update email if provided and changed
         if (updateDto.getEmail() != null && !updateDto.getEmail().equals(user.getEmail())) {
             if (userRepository.existsByEmail(updateDto.getEmail())) {
-                throw new RuntimeException("Email already exists: " + updateDto.getEmail());
+                throw new ResourceConflictException("Email already exists: " + updateDto.getEmail());
             }
             user.setEmail(updateDto.getEmail());
         }
@@ -166,11 +169,11 @@ public class UserService {
         log.info("Changing password for user: {}", userId);
         
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
         
         // Verify current password
         if (!passwordEncoder.matches(passwordChangeDto.getCurrentPassword(), user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+            throw new InvalidRequestException("Current password is incorrect");
         }
         
         // Update password
@@ -188,7 +191,7 @@ public class UserService {
         log.info("Soft deleting user: {}", userId);
         
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
         
         user.setEnabled(false);
         userRepository.save(user);
@@ -254,7 +257,7 @@ public class UserService {
         
         // Verify user exists
         userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
         
         List<UserPreference> preferences = userPreferenceRepository.findByUserId(userId);
         return preferences.stream()
@@ -270,7 +273,7 @@ public class UserService {
         log.info("Fetching user with statistics: {}", userId);
         
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
         
         UserResponseDto dto = toUserResponseDto(user);
         

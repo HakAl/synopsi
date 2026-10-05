@@ -1,9 +1,11 @@
 package com.study.synopsi.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -64,10 +66,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle ArticleNotFoundException (404)
+     * Any missing resource (404). Every *NotFoundException extends
+     * ResourceNotFoundException, so one handler covers them all.
      */
-    @ExceptionHandler(ArticleNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleArticleNotFound(ArticleNotFoundException ex) {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
                 ex.getMessage(),
@@ -77,55 +80,32 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle FeedNotFoundException (404)
+     * Request conflicts with existing state (409): a duplicate email, an
+     * article URL already ingested, a summary job already queued, a retry of
+     * a job that is not FAILED. ArticleAlreadyExistsException is a subclass.
      */
-    @ExceptionHandler(FeedNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleFeedNotFound(FeedNotFoundException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
-
-    /**
-     * Handle SourceNotFoundException (404)
-     */
-    @ExceptionHandler(SourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleSourceNotFound(SourceNotFoundException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
-
-    /**
-     * Handle TopicNotFoundException (404)
-     */
-    @ExceptionHandler(TopicNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleTopicNotFound(TopicNotFoundException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
-
-    /**
-     * Handle ArticleAlreadyExistsException (409)
-     */
-    @ExceptionHandler(ArticleAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleArticleAlreadyExists(ArticleAlreadyExistsException ex) {
+    @ExceptionHandler(ResourceConflictException.class)
+    public ResponseEntity<ErrorResponse> handleResourceConflict(ResourceConflictException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.CONFLICT.value(),
                 ex.getMessage(),
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Business rule violation the caller can fix (400): wrong current
+     * password, invalid or expired reset token.
+     */
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRequest(InvalidRequestException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     /**
@@ -189,32 +169,6 @@ public class GlobalExceptionHandler {
     private static final String UNIQUE_VIOLATION_SQLSTATE = "23505";
 
     /**
-     * Handle InvalidFeedException (400)
-     */
-    @ExceptionHandler(InvalidFeedException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidFeed(InvalidFeedException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-
-    /**
-     * Handle InvalidTopicHierarchyException (400)
-     */
-    @ExceptionHandler(InvalidTopicHierarchyException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidTopicHierarchy(InvalidTopicHierarchyException ex) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-
-    /**
      * Handle validation errors from @Valid (400)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -233,6 +187,21 @@ public class GlobalExceptionHandler {
         errors.put("fieldErrors", fieldErrors);
 
         return ResponseEntity.badRequest().body(errors);
+    }
+
+    /**
+     * Unparseable or missing request body (400). Without this a malformed JSON
+     * payload reached the generic handler as a 500 and was retried by the client.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        log.debug("Unreadable request body: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Malformed request body",
+                LocalDateTime.now()
+        );
+        return ResponseEntity.badRequest().body(error);
     }
 
     /**
@@ -271,42 +240,21 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle RuntimeException - check if auth-related (401) or generic (500)
-     */
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
-        String message = ex.getMessage();
-
-        // Check if it's an auth-related RuntimeException
-        if (message != null && (
-                message.contains("Invalid username/email or password") ||
-                        message.contains("Account is disabled") ||
-                        message.contains("Account is locked"))) {
-            ErrorResponse error = new ErrorResponse(
-                    HttpStatus.UNAUTHORIZED.value(),
-                    message,
-                    LocalDateTime.now()
-            );
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
-
-        // Generic server error
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "An unexpected error occurred: " + message,
-                LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-    }
-
-    /**
-     * Handle all other unexpected exceptions (500)
+     * Anything not mapped above is a bug or an outage (500). Business
+     * failures must never reach here: the dashboard's fetchWithRetry retries
+     * every 5xx three times, so a 500 for "wrong password" meant three
+     * password checks per click. Auth failures used to be recognised here by
+     * sniffing the message text; AuthService now throws Spring Security's
+     * BadCredentialsException, DisabledException and LockedException, which
+     * have their own handlers. The stack trace is logged, since a 500 with no
+     * log line is undiagnosable; the internal message is not returned.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "An unexpected error occurred: " + ex.getMessage(),
+                "An unexpected error occurred",
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

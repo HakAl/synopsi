@@ -1,6 +1,7 @@
 package com.study.synopsi.service;
 
 import com.study.synopsi.exception.ArticleNotFoundException;
+import com.study.synopsi.exception.ResourceConflictException;
 import com.study.synopsi.exception.SummaryJobNotFoundException;
 import com.study.synopsi.model.Article;
 import com.study.synopsi.model.Summary;
@@ -119,7 +120,7 @@ class SummaryServiceTest {
         when(summaryJobRepository.existsByArticleIdAndUserIdAndStatusIn(anyLong(), anyLong(), anyList())).thenReturn(true);
 
         // When & Then
-        Exception exception = assertThrows(RuntimeException.class, () ->
+        Exception exception = assertThrows(ResourceConflictException.class, () ->
                 summaryService.requestSummary(1L, 10L, Summary.SummaryType.LIST, Summary.SummaryLength.MEDIUM)
         );
         assertEquals("Summary generation already in progress", exception.getMessage());
@@ -327,7 +328,7 @@ class SummaryServiceTest {
         when(summaryJobRepository.findById(9L)).thenReturn(Optional.of(job));
 
         // When & Then
-        Exception exception = assertThrows(IllegalStateException.class, () ->
+        Exception exception = assertThrows(ResourceConflictException.class, () ->
                 summaryService.retryFailedJob(9L)
         );
         assertEquals("Can only retry FAILED jobs", exception.getMessage());

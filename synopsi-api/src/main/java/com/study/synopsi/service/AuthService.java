@@ -2,12 +2,16 @@ package com.study.synopsi.service;
 
 import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.dto.*;
+import com.study.synopsi.exception.InvalidRequestException;
 import com.study.synopsi.model.User;
 import com.study.synopsi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -80,16 +84,16 @@ public class AuthService implements UserDetailsService {
         // Find user by username or email
         User user = userRepository.findByUsername(request.getUsernameOrEmail())
                 .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
-                .orElseThrow(() -> new RuntimeException("Invalid username/email or password"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid username/email or password"));
 
         // Check if account is enabled
         if (!user.getEnabled()) {
-            throw new RuntimeException("Account is disabled");
+            throw new DisabledException("Account is disabled");
         }
 
         // Check if account is locked
         if (user.getAccountLocked()) {
-            throw new RuntimeException("Account is locked");
+            throw new LockedException("Account is locked");
         }
 
         // Authenticate
@@ -155,12 +159,12 @@ public class AuthService implements UserDetailsService {
         log.info("Password reset confirmation attempt with token: {}", request.getToken());
 
         User user = userRepository.findByResetToken(request.getToken())
-                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+                .orElseThrow(() -> new InvalidRequestException("Invalid or expired reset token"));
 
         // Check if token is expired
         if (user.getResetTokenExpiry() == null ||
                 user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Reset token has expired");
+            throw new InvalidRequestException("Reset token has expired");
         }
 
         // Update password

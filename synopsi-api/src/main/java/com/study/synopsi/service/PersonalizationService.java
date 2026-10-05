@@ -2,6 +2,9 @@ package com.study.synopsi.service;
 
 import com.study.synopsi.config.PersonalizationConfig;
 import com.study.synopsi.dto.*;
+import com.study.synopsi.exception.ArticleNotFoundException;
+import com.study.synopsi.exception.TopicNotFoundException;
+import com.study.synopsi.exception.UserNotFoundException;
 import com.study.synopsi.model.*;
 import com.study.synopsi.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +46,7 @@ public class PersonalizationService {
 
         // Verify user exists
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         // Get all published articles
         List<Article> articles = articleRepository.findAll();
@@ -265,10 +268,10 @@ public class PersonalizationService {
                 userId, interaction.getArticleId());
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Article article = articleRepository.findById(interaction.getArticleId())
-                .orElseThrow(() -> new RuntimeException("Article not found: " + interaction.getArticleId()));
+                .orElseThrow(() -> new ArticleNotFoundException(interaction.getArticleId()));
 
         Optional<ReadingHistory> existingHistory =
                 readingHistoryRepository.findByUserIdAndArticleId(userId, interaction.getArticleId());
@@ -302,10 +305,10 @@ public class PersonalizationService {
                 userId, interaction.getArticleId(), interaction.getFeedbackType());
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Article article = articleRepository.findById(interaction.getArticleId())
-                .orElseThrow(() -> new RuntimeException("Article not found: " + interaction.getArticleId()));
+                .orElseThrow(() -> new ArticleNotFoundException(interaction.getArticleId()));
 
         Optional<UserArticleFeedback> existing = feedbackRepository
                 .findByUserIdAndArticleIdAndFeedbackType(userId, interaction.getArticleId(),
@@ -351,7 +354,7 @@ public class PersonalizationService {
     @CacheEvict(value = "personalizedFeed", key = "#userId + '-*'")
     public UserPreferenceDto updateUserPreference(Long userId, UserPreferenceDto dto) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Optional<UserPreference> existing =
                 userPreferenceRepository.findByUserIdAndTopicId(userId, dto.getTopicId());
@@ -367,7 +370,7 @@ public class PersonalizationService {
         } else {
             // Fetch the Topic entity
             Topic topic = topicRepository.findById(dto.getTopicId())
-                    .orElseThrow(() -> new RuntimeException("Topic not found: " + dto.getTopicId()));
+                    .orElseThrow(() -> new TopicNotFoundException(dto.getTopicId()));
 
             preference = new UserPreference();
             preference.setUser(user);
@@ -428,7 +431,7 @@ public class PersonalizationService {
     public List<PersonalizedArticleDto> getSimilarArticles(Long userId, Long articleId, int limit) {
         // For now, find articles with similar topics
         Article sourceArticle = articleRepository.findById(articleId)
-                .orElseThrow(() -> new RuntimeException("Article not found: " + articleId));
+                .orElseThrow(() -> new ArticleNotFoundException(articleId));
 
         Set<Long> sourceTopicIds = sourceArticle.getArticleTopics().stream()
                 .map(at -> at.getTopic().getId())

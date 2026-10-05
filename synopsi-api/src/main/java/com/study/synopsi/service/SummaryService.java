@@ -3,6 +3,8 @@ package com.study.synopsi.service;
 import com.study.synopsi.dto.SummaryJobResponseDto;
 import com.study.synopsi.dto.SummaryResponseDto;
 import com.study.synopsi.exception.ArticleNotFoundException;
+import com.study.synopsi.exception.ResourceConflictException;
+import com.study.synopsi.exception.UserNotFoundException;
 import com.study.synopsi.exception.SummaryJobNotFoundException;
 import com.study.synopsi.exception.SummaryNotFoundException;
 import com.study.synopsi.model.Article;
@@ -132,7 +134,7 @@ public class SummaryService {
         User user = null;
         if (userId != null) {
             user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                    .orElseThrow(() -> new UserNotFoundException(userId));
         }
 
         // Check if summary already exists
@@ -154,7 +156,7 @@ public class SummaryService {
 
         if (jobExists) {
             log.warn("Active job already exists for article {} and user {}", articleId, userId);
-            throw new RuntimeException("Summary generation already in progress");
+            throw new ResourceConflictException("Summary generation already in progress");
         }
 
         // Create new job
@@ -392,11 +394,11 @@ public class SummaryService {
         SummaryJob job = getJobById(jobId);
         
         if (job.getStatus() != SummaryJob.JobStatus.FAILED) {
-            throw new IllegalStateException("Can only retry FAILED jobs");
+            throw new ResourceConflictException("Can only retry FAILED jobs");
         }
 
         if (!job.canRetry()) {
-            throw new IllegalStateException("Job has exceeded max retry attempts");
+            throw new ResourceConflictException("Job has exceeded max retry attempts");
         }
 
         job.setStatus(SummaryJob.JobStatus.QUEUED);

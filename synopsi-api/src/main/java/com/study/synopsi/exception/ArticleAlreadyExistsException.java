@@ -7,7 +7,7 @@ import java.io.Serial;
  * Maps to HTTP 409 CONFLICT so ingestion workers can treat it as a duplicate
  * rather than a failure.
  */
-public class ArticleAlreadyExistsException extends BaseException {
+public class ArticleAlreadyExistsException extends ResourceConflictException {
     @Serial
     private static final long serialVersionUID = 1L;
 

@@ -2,7 +2,7 @@ package com.study.synopsi.exception;
 
 import java.io.Serial;
 
-public class SummaryJobNotFoundException extends RuntimeException {
+public class SummaryJobNotFoundException extends ResourceNotFoundException {
     @Serial
     private static final long serialVersionUID = 1L;
 

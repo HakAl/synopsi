@@ -7,6 +7,7 @@ import com.study.synopsi.dto.ArticleInteractionDto;
 import com.study.synopsi.dto.PersonalizedArticleDto;
 import com.study.synopsi.dto.UserPreferenceDto;
 import com.study.synopsi.dto.UserTopicInterestDto;
+import com.study.synopsi.exception.UserNotFoundException;
 import com.study.synopsi.service.AuthService;
 import com.study.synopsi.service.PersonalizationService;
 import org.junit.jupiter.api.Test;
@@ -338,32 +339,31 @@ class PersonalizationControllerTest {
     }
 
     @Test
-    void handleRuntimeException_shouldReturnBadRequest() throws Exception {
+    void unexpectedException_shouldReturnInternalServerErrorWithoutInternalMessage() throws Exception {
+        // The controller used to catch every RuntimeException locally and answer
+        // 400 with the raw message, hiding bugs as client errors.
         Long userId = 1L;
-        String errorMessage = "Test runtime exception";
 
-        when(personalizationService.getUserPreferences(userId)).thenThrow(new RuntimeException(errorMessage));
+        when(personalizationService.getUserPreferences(userId)).thenThrow(new RuntimeException("cache backend down"));
 
         mockMvc.perform(get("/api/v1/personalization/preferences/{userId}", userId))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.message").value(errorMessage));
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
     }
 
     @Test
-    void handleRuntimeException_onRecordInteraction_shouldReturnBadRequest() throws Exception {
+    void unknownUser_shouldReturnNotFound() throws Exception {
+        // getPersonalizedArticles is a path where the service really throws
+        // UserNotFoundException (getUserPreferences does not check the user).
         Long userId = 999L;
-        String errorMessage = "User not found: 999";
-        ArticleInteractionDto interaction = ArticleInteractionDto.builder()
-                .articleId(101L)
-                .timeSpentSeconds(180)
-                .build();
 
-        doNothing().when(personalizationService).recordReadingInteraction(eq(1L), any(ArticleInteractionDto.class));
-        when(personalizationService.getUserPreferences(userId)).thenThrow(new RuntimeException(errorMessage));
+        when(personalizationService.getPersonalizedArticles(eq(userId), any(Pageable.class)))
+                .thenThrow(new UserNotFoundException(userId));
 
-        mockMvc.perform(get("/api/v1/personalization/preferences/{userId}", userId))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(errorMessage));
+        mockMvc.perform(get("/api/v1/personalization/feed/{userId}", userId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("User not found: 999"));
     }
 }

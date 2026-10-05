@@ -129,23 +129,4 @@ public class PersonalizationController {
                 .getSimilarArticles(userId, articleId, limit);
         return ResponseEntity.ok(similar);
     }
-
-    /**
-     * Exception handler for this controller
-     */
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
-        log.error("Error in PersonalizationController: {}", ex.getMessage(), ex);
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                System.currentTimeMillis()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-
-    /**
-     * Simple error response DTO
-     */
-    record ErrorResponse(int status, String message, long timestamp) {}
 }

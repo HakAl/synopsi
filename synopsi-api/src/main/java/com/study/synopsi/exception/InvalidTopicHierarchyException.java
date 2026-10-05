@@ -2,7 +2,7 @@ package com.study.synopsi.exception;
 
 import java.io.Serial;
 
-public class InvalidTopicHierarchyException extends RuntimeException {
+public class InvalidTopicHierarchyException extends InvalidRequestException {
     @Serial
     private static final long serialVersionUID = 1L;
     

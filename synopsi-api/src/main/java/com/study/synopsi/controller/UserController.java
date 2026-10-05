@@ -254,23 +254,4 @@ public class UserController {
         boolean exists = userService.usernameExists(username);
         return ResponseEntity.ok(exists);
     }
-
-    /**
-     * Exception handler for this controller
-     */
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
-        log.error("Error in UserController: {}", ex.getMessage(), ex);
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                System.currentTimeMillis()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-
-    /**
-     * Simple error response DTO
-     */
-    record ErrorResponse(int status, String message, long timestamp) {}
 }
