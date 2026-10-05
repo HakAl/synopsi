@@ -29,9 +29,9 @@ graph LR
 | **Storage** | H2 (dev) / PostgreSQL (prod) | Articles, users, preferences |
 | **NLP Engine** | Python 3.11 | Scraping, cleaning, summarizing |
 | **ML Framework** | PyTorch 2.x + `transformers` (DistilBART-cnn-6L) | Lightweight summarization |
-| **Container** | Docker | 2 images (`synopsi-api`, `synopsi-worker`) |
+| **Container** | Docker | 3 images (`synopsi-api`, `synopsi-ingestion`, `synopsi-summarization`), built locally |
 | **Orchestration** | Kubernetes (Docker Desktop or Minikube) | CronJob, Deployment, Service |
-| **CI/CD** | GitHub Actions | Test → Build → Push → (Optionally) Deploy |
+| **CI** | GitHub Actions | Java tests and jar build, Python worker tests; no image publishing |
 
 ---
 

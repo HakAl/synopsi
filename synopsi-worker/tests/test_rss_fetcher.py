@@ -1,3 +1,4 @@
+import feedparser
 import pytest
 from ingestion.fetchers.rss_fetcher import RSSFetcher
 
@@ -47,10 +48,61 @@ class TestRSSFetcher:
         with pytest.raises(ValueError):
             fetcher.fetch_feed("not-a-valid-url")
 
-    def test_nonexistent_feed(self, fetcher):
-        """Test handling of non-existent feed."""
-        with pytest.raises(ValueError):
+    @staticmethod
+    def _parsed(monkeypatch, **fields):
+        """Stub feedparser.parse so the test runs offline with a fixed result."""
+        result = feedparser.FeedParserDict(fields)
+        monkeypatch.setattr(
+            "ingestion.fetchers.rss_fetcher.feedparser.parse",
+            lambda url, agent=None: result,
+        )
+        return result
+
+    def test_nonexistent_feed(self, fetcher, monkeypatch):
+        """A 404 page is HTML: feedparser flags it bozo with no entries. That is
+        a failed fetch and must raise, not look like an empty feed."""
+        self._parsed(
+            monkeypatch,
+            bozo=1,
+            bozo_exception=Exception("syntax error"),
+            entries=[],
+            status=404,
+        )
+
+        with pytest.raises(ValueError, match="HTTP status 404"):
             fetcher.fetch_feed("https://example.com/nonexistent-feed.xml")
+
+    def test_unparseable_body_without_status_raises(self, fetcher, monkeypatch):
+        """A local or non-HTTP source has no status; a bozo empty parse still raises."""
+        self._parsed(monkeypatch, bozo=1, bozo_exception=Exception("not well-formed"), entries=[])
+
+        with pytest.raises(ValueError, match="could not be parsed"):
+            fetcher.fetch_feed("https://example.com/garbage.xml")
+
+    def test_http_error_without_parse_error_raises(self, fetcher, monkeypatch):
+        """An HTTP error with an empty body is also a failed fetch."""
+        self._parsed(monkeypatch, bozo=0, entries=[], status=500)
+
+        with pytest.raises(ValueError, match="HTTP status 500"):
+            fetcher.fetch_feed("https://example.com/feed.xml")
+
+    def test_http_error_with_parseable_body_raises(self, fetcher, monkeypatch):
+        """An HTTP error page that happens to parse into entries is still a failure."""
+        self._parsed(
+            monkeypatch,
+            bozo=0,
+            entries=[{"title": "Forbidden", "link": "https://example.com/403"}],
+            status=403,
+        )
+
+        with pytest.raises(ValueError, match="HTTP status 403"):
+            fetcher.fetch_feed("https://example.com/feed.xml")
+
+    def test_valid_empty_feed_returns_no_articles(self, fetcher, monkeypatch):
+        """A well-formed feed with no items is an empty feed, not a failure."""
+        self._parsed(monkeypatch, bozo=0, entries=[], status=200, feed={"title": "Empty"})
+
+        assert fetcher.fetch_feed("https://example.com/empty.xml") == []
 
     def test_is_valid_url(self, fetcher):
         """Test URL validation."""

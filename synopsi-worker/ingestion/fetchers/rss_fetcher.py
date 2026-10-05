@@ -44,12 +44,22 @@ class RSSFetcher:
             # Parse feed with custom user agent
             feed = feedparser.parse(feed_url, agent=self.user_agent)
 
+            # An HTTP error is a failed fetch whatever the body parsed into.
+            status = feed.get('status') if hasattr(feed, 'get') else None
+            if status is not None and status >= 400:
+                raise ValueError(f"Feed fetch failed with HTTP status {status}")
+
             # Check for parsing errors
             if feed.bozo:
                 logger.warning(f"Feed parsing warning for {feed_url}: {feed.bozo_exception}")
 
-            # Check if feed has entries
-            if not hasattr(feed, 'entries') or len(feed.entries) == 0:
+            # A feed that is both unparseable and empty is a failed fetch, not
+            # an empty feed: an error page is HTML, so feedparser flags it bozo
+            # with no entries. A well-formed feed with no items is empty.
+            entries = getattr(feed, 'entries', None) or []
+            if len(entries) == 0:
+                if feed.bozo:
+                    raise ValueError(f"Feed could not be parsed: {feed.bozo_exception}")
                 logger.warning(f"No entries found in feed: {feed_url}")
                 return []
 
@@ -59,7 +69,7 @@ class RSSFetcher:
 
             # Normalize each entry
             articles = []
-            for entry in feed.entries:
+            for entry in entries:
                 try:
                     article = self._normalize_entry(entry, feed_title, feed_source)
                     articles.append(article)
@@ -70,6 +80,9 @@ class RSSFetcher:
             logger.info(f"Successfully fetched {len(articles)} articles from {feed_url}")
             return articles
 
+        except ValueError as e:
+            logger.error(f"Failed to fetch feed {feed_url}: {e}")
+            raise
         except Exception as e:
             logger.error(f"Failed to fetch feed {feed_url}: {e}", exc_info=True)
             raise ValueError(f"Feed fetch failed: {e}")
