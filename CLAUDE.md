@@ -9,7 +9,7 @@ Synopsi is a personalized news and learning summarizer that turns RSS feeds into
 - **synopsi-api**: Spring Boot 3 REST API (Java 21) that serves the dashboard and manages data
 - **Frontend**: Plain HTML/CSS/JavaScript dashboard (no framework) served from `synopsi-api/src/main/resources/static/`
 - **synopsi-worker**: Python NLP workers for feed ingestion and article summarization
-- **Database**: H2 (in-memory for dev), designed for PostgreSQL in production
+- **Database**: H2 in-memory on the default profile (dev and tests); PostgreSQL with Flyway migrations on the `postgres` profile (docker-compose)
 
 ## Common Commands
 
@@ -57,9 +57,18 @@ The frontend is plain HTML/CSS/JavaScript served from `synopsi-api/src/main/reso
 
 ### H2 Database Console
 
-When the API is running, access the H2 console at: http://localhost:8080/h2-console
+When the API is running on the default profile, access the H2 console at: http://localhost:8080/h2-console
 
 Connection details are in `synopsi-api/src/main/resources/application.properties`
+
+### PostgreSQL profile
+
+```bash
+docker compose up -d postgres
+SPRING_PROFILES_ACTIVE=postgres SPRING_DATASOURCE_PASSWORD=synopsi ./gradlew bootRun
+```
+
+`application-postgres.properties` enables Flyway (`src/main/resources/db/migration`, `V1__initial_schema.sql` was generated from Hibernate's PostgreSQL export) and sets `ddl-auto=validate`. The default profile keeps `ddl-auto=update` on H2 with Flyway disabled. Schema changes go in a new `V<n>__*.sql`; `PostgresSchemaMigrationTest` (Testcontainers, skipped without Docker, CI fails on a skip) proves the migrations match the entities.
 
 ### API Documentation
 
@@ -186,7 +195,8 @@ The frontend is a plain HTML/CSS/JavaScript application located in `synopsi-api/
 
 ### Configuration
 
-**Spring Configuration** (`application.properties`):
+**Spring Configuration** (`application.properties`, plus `application-postgres.properties` for the `postgres` profile):
+- Datasource: H2 in-memory by default; the postgres profile reads `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` (required; startup fails with a Postgres authentication error without it)
 - Personalization scoring weights (topic-preference: 0.40, reading-history: 0.30, positive-feedback: 0.20, recency: 0.10)
 - Cache settings (Caffeine, 10m TTL, 1000 max size)
 - JWT secret and expiration (24 hours)
@@ -201,7 +211,7 @@ The frontend is a plain HTML/CSS/JavaScript application located in `synopsi-api/
 
 - **Backend**: Spring Boot 3.3.5, Spring Data JPA, Spring Security, Spring Cache (Caffeine)
 - **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3 (no frameworks)
-- **Database**: H2 (dev), PostgreSQL (prod target)
+- **Database**: H2 (default profile), PostgreSQL 16 + Flyway (`postgres` profile), Testcontainers for the schema test
 - **Auth**: JWT (jjwt library) with localStorage-based token management
 - **Mapping**: MapStruct 1.5.5
 - **Documentation**: SpringDoc OpenAPI (Swagger)

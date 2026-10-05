@@ -9,6 +9,13 @@ description = "Personalized News & Learning Summarizer"
 
 val mapstructVersion = "1.5.5.Final"
 
+// Spring Boot 3.3.5 manages Testcontainers 1.19.8, which asks the daemon for
+// Docker API 1.32. Docker Engine 29 answers that with HTTP 400 (its minimum is
+// 1.40 or higher), so PostgresSchemaMigrationTest would be skipped as "no
+// Docker" on Docker Desktop 4.5x and on current GitHub runners. 1.21.4 is the
+// 1.x release that "works with recent Docker Engine changes"; 1.21.3 does not.
+extra["testcontainers.version"] = "1.21.4"
+
 dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")
@@ -25,8 +32,14 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.h2database:h2")
+    runtimeOnly("org.postgresql:postgresql")
+    implementation("org.flywaydb:flyway-core")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     annotationProcessor("org.projectlombok:lombok")

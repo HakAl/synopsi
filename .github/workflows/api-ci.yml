@@ -39,8 +39,20 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Check Docker is available for Testcontainers
+        run: docker info --format '{{.ServerVersion}}'
+
       - name: Run tests
         run: ./gradlew :synopsi-api:clean :synopsi-api:test
+
+      - name: Confirm the PostgreSQL schema test ran
+        # PostgresSchemaMigrationTest skips itself without Docker and Gradle
+        # still exits 0, so a runner without a daemon would pass silently.
+        run: |
+          report=synopsi-api/build/test-results/test/TEST-com.study.synopsi.PostgresSchemaMigrationTest.xml
+          test -f "$report" || { echo "missing $report"; exit 1; }
+          grep -Eq '<testsuite[^>]* skipped="0"' "$report" || { echo "PostgresSchemaMigrationTest was skipped"; grep -oE '<testsuite[^>]*>' "$report"; exit 1; }
+          grep -Eq '<testsuite[^>]* tests="[1-9]' "$report" || { echo "PostgresSchemaMigrationTest ran no tests"; exit 1; }
 
       - name: Upload test results
         if: always()

@@ -1,6 +1,27 @@
 version: '3.9'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=synopsi
+      - POSTGRES_USER=synopsi
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synopsi}
+    ports:
+      # Loopback only: lets `./gradlew bootRun` on the host use the same
+      # database without exposing the default credentials to the network
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - synopsi-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synopsi -d synopsi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   synopsi-api:
     build:
       context: .
@@ -8,14 +29,22 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      # Flyway-managed PostgreSQL schema; data survives API restarts
+      - SPRING_PROFILES_ACTIVE=postgres
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/synopsi
+      - SPRING_DATASOURCE_USERNAME=synopsi
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-synopsi}
       # Seeds the account the workers log in with (same defaults as below)
       - SYNOPSI_WORKER_USERNAME=${API_USERNAME:-worker}
       - SYNOPSI_WORKER_PASSWORD=${API_PASSWORD:-password}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - synopsi-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/swagger-ui.html"]
+      # The runtime image (eclipse-temurin jre-alpine) has busybox wget, not curl
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/swagger-ui.html"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,3 +84,6 @@ services:
 networks:
   synopsi-network:
     driver: bridge
+
+volumes:
+  postgres-data:
