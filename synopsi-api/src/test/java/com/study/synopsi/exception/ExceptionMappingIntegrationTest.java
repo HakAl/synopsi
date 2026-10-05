@@ -1,5 +1,6 @@
 package com.study.synopsi.exception;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.study.synopsi.dto.LoginRequestDto;
 import com.study.synopsi.dto.PasswordChangeDto;
@@ -18,8 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -38,10 +41,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * the dashboard's fetchWithRetry retries any 5xx three times, and a 401 or 403
  * from a non-auth endpoint logs the user out, so a wrong current password has
  * to be a 400, not a 401 and not a 500.
- * Security filters are off: authorization is a separate defect.
+ * The real filter chain is on and requests carry the JWT register returns,
+ * since user-scoped endpoints now check ownership.
  */
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @Transactional
 @DisplayName("Business failures map to 4xx end to end")
 class ExceptionMappingIntegrationTest {
@@ -74,13 +78,28 @@ class ExceptionMappingIntegrationTest {
                 .build();
     }
 
-    private Long register(UserRequestDto request) throws Exception {
+    private record Account(Long id, String token) {}
+
+    private Account register(UserRequestDto request) throws Exception {
         String body = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(body).get("userId").asLong();
+        JsonNode json = objectMapper.readTree(body);
+        return new Account(json.get("userId").asLong(), json.get("token").asText());
+    }
+
+    private Account registerAdmin(String suffix) throws Exception {
+        Account account = register(registration(suffix));
+        User user = userRepository.findById(account.id()).orElseThrow();
+        user.setRole(User.UserRole.ADMIN);
+        userRepository.saveAndFlush(user);
+        return account;
+    }
+
+    private MockHttpServletRequestBuilder as(Account account, MockHttpServletRequestBuilder request) {
+        return request.header(HttpHeaders.AUTHORIZATION, "Bearer " + account.token());
     }
 
     private String json(Object value) throws Exception {
@@ -107,11 +126,11 @@ class ExceptionMappingIntegrationTest {
     @Test
     @DisplayName("A wrong current password is a 400 with a message, not a 401 and not a 500")
     void wrongCurrentPasswordIsBadRequest() throws Exception {
-        Long userId = register(registration("pw-" + System.nanoTime()));
+        Account account = register(registration("pw-" + System.nanoTime()));
 
-        mockMvc.perform(put("/api/v1/users/{id}/password", userId)
+        mockMvc.perform(as(account, put("/api/v1/users/{id}/password", account.id())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(new PasswordChangeDto("not-the-password", "newpassword123"))))
+                        .content(json(new PasswordChangeDto("not-the-password", "newpassword123")))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status", is(400)))
                 .andExpect(jsonPath("$.message", is("Current password is incorrect")));
@@ -120,7 +139,9 @@ class ExceptionMappingIntegrationTest {
     @Test
     @DisplayName("An unknown user id is a 404")
     void unknownUserIsNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/users/{id}", 987654321L))
+        Account admin = registerAdmin("admin-" + System.nanoTime());
+
+        mockMvc.perform(as(admin, get("/api/v1/users/{id}", 987654321L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)))
                 .andExpect(jsonPath("$.message", containsString("987654321")));
@@ -140,8 +161,8 @@ class ExceptionMappingIntegrationTest {
     @DisplayName("Login to a disabled account is a 401")
     void disabledAccountOnLoginIsUnauthorized() throws Exception {
         UserRequestDto request = registration("disabled-" + System.nanoTime());
-        Long userId = register(request);
-        User user = userRepository.findById(userId).orElseThrow();
+        Account account = register(request);
+        User user = userRepository.findById(account.id()).orElseThrow();
         user.setEnabled(false);
         userRepository.saveAndFlush(user);
 
@@ -156,8 +177,8 @@ class ExceptionMappingIntegrationTest {
     @DisplayName("Login to a locked account is a 401")
     void lockedAccountOnLoginIsUnauthorized() throws Exception {
         UserRequestDto request = registration("locked-" + System.nanoTime());
-        Long userId = register(request);
-        User user = userRepository.findById(userId).orElseThrow();
+        Account account = register(request);
+        User user = userRepository.findById(account.id()).orElseThrow();
         user.setAccountLocked(true);
         userRepository.saveAndFlush(user);
 
@@ -183,8 +204,8 @@ class ExceptionMappingIntegrationTest {
     @DisplayName("Confirming a password reset with an expired token is a 400")
     void expiredResetTokenIsBadRequest() throws Exception {
         UserRequestDto request = registration("expired-" + System.nanoTime());
-        Long userId = register(request);
-        User user = userRepository.findById(userId).orElseThrow();
+        Account account = register(request);
+        User user = userRepository.findById(account.id()).orElseThrow();
         String token = "expired-token-" + System.nanoTime();
         user.setResetToken(token);
         user.setResetTokenExpiry(LocalDateTime.now().minusMinutes(1));
@@ -211,7 +232,9 @@ class ExceptionMappingIntegrationTest {
     @Test
     @DisplayName("An unknown summary job is a 404")
     void unknownSummaryJobIsNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/summaries/jobs/{id}", 987654321L))
+        Account account = register(registration("job-" + System.nanoTime()));
+
+        mockMvc.perform(as(account, get("/api/v1/summaries/jobs/{id}", 987654321L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", containsString("987654321")));
     }
@@ -219,7 +242,9 @@ class ExceptionMappingIntegrationTest {
     @Test
     @DisplayName("An unknown summary is a 404")
     void unknownSummaryIsNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/summaries/{id}", 987654321L))
+        Account account = register(registration("summary-" + System.nanoTime()));
+
+        mockMvc.perform(as(account, get("/api/v1/summaries/{id}", 987654321L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", containsString("987654321")));
     }
@@ -227,6 +252,8 @@ class ExceptionMappingIntegrationTest {
     @Test
     @DisplayName("Requesting a summary while one is already queued is a 409")
     void summaryAlreadyInProgressIsConflict() throws Exception {
+        Account account = register(registration("progress-" + System.nanoTime()));
+
         Source source = new Source();
         source.setName("mapping-source-" + System.nanoTime());
         source.setBaseUrl("https://mapping.test");
@@ -248,12 +275,12 @@ class ExceptionMappingIntegrationTest {
         article.setFeed(feed);
         article = articleRepository.saveAndFlush(article);
 
-        mockMvc.perform(post("/api/v1/summaries/request")
-                        .param("articleId", String.valueOf(article.getId())))
+        mockMvc.perform(as(account, post("/api/v1/summaries/request")
+                        .param("articleId", String.valueOf(article.getId()))))
                 .andExpect(status().isAccepted());
 
-        mockMvc.perform(post("/api/v1/summaries/request")
-                        .param("articleId", String.valueOf(article.getId())))
+        mockMvc.perform(as(account, post("/api/v1/summaries/request")
+                        .param("articleId", String.valueOf(article.getId()))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status", is(409)))
                 .andExpect(jsonPath("$.message", is("Summary generation already in progress")));

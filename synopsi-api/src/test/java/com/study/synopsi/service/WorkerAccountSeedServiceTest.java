@@ -12,6 +12,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,7 +59,7 @@ class WorkerAccountSeedServiceTest {
     @Test
     @DisplayName("Creates the account with an encoded password and a derived email")
     void createsAccountWithEncodedPassword() {
-        when(userRepository.existsByUsername("worker")).thenReturn(false);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty());
         when(userRepository.existsByEmail("worker@worker.synopsi.local")).thenReturn(false);
         when(passwordEncoder.encode("secret-pass")).thenReturn("encoded");
 
@@ -70,6 +72,7 @@ class WorkerAccountSeedServiceTest {
         assertThat(saved.getUsername()).isEqualTo("worker");
         assertThat(saved.getEmail()).isEqualTo("worker@worker.synopsi.local");
         assertThat(saved.getPassword()).isEqualTo("encoded");
+        assertThat(saved.getRole()).isEqualTo(User.UserRole.WORKER);
         assertThat(saved.getEnabled()).isTrue();
         assertThat(saved.getAccountLocked()).isFalse();
     }
@@ -77,7 +80,7 @@ class WorkerAccountSeedServiceTest {
     @Test
     @DisplayName("Uses the configured email when one is given")
     void usesConfiguredEmail() {
-        when(userRepository.existsByUsername("worker")).thenReturn(false);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty());
         when(userRepository.existsByEmail("ops@example.com")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
 
@@ -89,9 +92,13 @@ class WorkerAccountSeedServiceTest {
     }
 
     @Test
-    @DisplayName("Is idempotent: an existing account is left untouched")
-    void skipsWhenAccountAlreadyExists() {
-        when(userRepository.existsByUsername("worker")).thenReturn(true);
+    @DisplayName("Is idempotent: an existing WORKER account is left untouched")
+    void skipsWhenWorkerAccountAlreadyExists() {
+        User existing = new User();
+        existing.setUsername("worker");
+        existing.setPassword("old-hash");
+        existing.setRole(User.UserRole.WORKER);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.of(existing));
 
         boolean created = service("worker", "secret-pass", "").seedWorkerAccount();
 
@@ -100,10 +107,66 @@ class WorkerAccountSeedServiceTest {
         verify(passwordEncoder, never()).encode(anyString());
     }
 
+    private User existingAccount(User.UserRole role) {
+        User existing = new User();
+        existing.setUsername("worker");
+        existing.setPassword("old-hash");
+        existing.setRole(role);
+        return existing;
+    }
+
+    @Test
+    @DisplayName("Promotes a legacy USER account to WORKER when the configured password verifies against it")
+    void promotesLegacyUserAccountWhenPasswordMatches() {
+        User existing = existingAccount(User.UserRole.USER);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.of(existing));
+        when(passwordEncoder.matches("secret-pass", "old-hash")).thenReturn(true);
+
+        boolean created = service("worker", "secret-pass", "").seedWorkerAccount();
+
+        assertThat(created).isFalse();
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue()).isSameAs(existing);
+        assertThat(captor.getValue().getRole()).isEqualTo(User.UserRole.WORKER);
+        assertThat(captor.getValue().getPassword()).isEqualTo("old-hash");
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    @DisplayName("Refuses to promote a USER whose password does not match the configured one, and fails startup")
+    void refusesToPromoteOnPasswordMismatch() {
+        User existing = existingAccount(User.UserRole.USER);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.of(existing));
+        when(passwordEncoder.matches("secret-pass", "old-hash")).thenReturn(false);
+
+        assertThatThrownBy(() -> service("worker", "secret-pass", "").seedWorkerAccount())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("does not match");
+
+        assertThat(existing.getRole()).isEqualTo(User.UserRole.USER);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Never rewrites an ADMIN or MODERATOR to WORKER, even with a matching password")
+    void refusesToPromoteNonUserRoles() {
+        User existing = existingAccount(User.UserRole.ADMIN);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.of(existing));
+        when(passwordEncoder.matches("secret-pass", "old-hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> service("worker", "secret-pass", "").seedWorkerAccount())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("role ADMIN");
+
+        assertThat(existing.getRole()).isEqualTo(User.UserRole.ADMIN);
+        verify(userRepository, never()).save(any());
+    }
+
     @Test
     @DisplayName("Refuses to seed when the derived email is already taken")
     void skipsWhenEmailTaken() {
-        when(userRepository.existsByUsername("worker")).thenReturn(false);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty());
         when(userRepository.existsByEmail("worker@worker.synopsi.local")).thenReturn(true);
 
         boolean created = service("worker", "secret-pass", "").seedWorkerAccount();
@@ -131,11 +194,13 @@ class WorkerAccountSeedServiceTest {
     }
 
     @Test
-    @DisplayName("Tolerates a concurrent seed when the username exists after the failed insert")
+    @DisplayName("Tolerates a concurrent seed when the same worker identity exists after the failed insert")
     void toleratesConcurrentInsert() {
-        when(userRepository.existsByUsername("worker")).thenReturn(false, true);
+        User winner = existingAccount(User.UserRole.WORKER);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty()).thenReturn(Optional.of(winner));
         when(userRepository.existsByEmail("worker@worker.synopsi.local")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
+        when(passwordEncoder.matches("secret-pass", "old-hash")).thenReturn(true);
         doThrow(new DataIntegrityViolationException("duplicate key")).when(userRepository).save(any(User.class));
 
         boolean created = service("worker", "secret-pass", "").seedWorkerAccount();
@@ -144,9 +209,39 @@ class WorkerAccountSeedServiceTest {
     }
 
     @Test
+    @DisplayName("Fails startup when the account that won the insert race is not the worker identity")
+    void rejectsConcurrentWinnerThatIsNotTheWorker() {
+        User winner = existingAccount(User.UserRole.USER);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty()).thenReturn(Optional.of(winner));
+        when(userRepository.existsByEmail("worker@worker.synopsi.local")).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
+        doThrow(new DataIntegrityViolationException("duplicate key")).when(userRepository).save(any(User.class));
+
+        assertThatThrownBy(() -> service("worker", "secret-pass", "").seedWorkerAccount())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not the configured worker identity");
+        assertThat(winner.getRole()).isEqualTo(User.UserRole.USER);
+    }
+
+    @Test
+    @DisplayName("Fails startup when the concurrent winner is a WORKER with a different password")
+    void rejectsConcurrentWorkerWithDifferentPassword() {
+        User winner = existingAccount(User.UserRole.WORKER);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty()).thenReturn(Optional.of(winner));
+        when(userRepository.existsByEmail("worker@worker.synopsi.local")).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
+        when(passwordEncoder.matches("secret-pass", "old-hash")).thenReturn(false);
+        doThrow(new DataIntegrityViolationException("duplicate key")).when(userRepository).save(any(User.class));
+
+        assertThatThrownBy(() -> service("worker", "secret-pass", "").seedWorkerAccount())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not the configured worker identity");
+    }
+
+    @Test
     @DisplayName("Fails startup when the insert fails and no account with that username exists")
     void propagatesIntegrityFailureWithoutWinner() {
-        when(userRepository.existsByUsername("worker")).thenReturn(false, false);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty()).thenReturn(Optional.empty());
         when(userRepository.existsByEmail("worker@worker.synopsi.local")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
         doThrow(new DataIntegrityViolationException("email collision")).when(userRepository).save(any(User.class));
@@ -159,7 +254,7 @@ class WorkerAccountSeedServiceTest {
     @Test
     @DisplayName("ApplicationRunner.run seeds the account")
     void runSeedsTheAccount() throws Exception {
-        when(userRepository.existsByUsername("worker")).thenReturn(false);
+        when(userRepository.findByUsername("worker")).thenReturn(Optional.empty());
         when(userRepository.existsByEmail("worker@worker.synopsi.local")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
 

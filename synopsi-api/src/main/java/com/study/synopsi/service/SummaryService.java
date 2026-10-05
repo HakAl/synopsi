@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @Slf4j
 @Service
@@ -41,6 +42,7 @@ public class SummaryService {
     private final UserRepository userRepository;
     private final SummaryMapper summaryMapper;
     private final SummaryJobMapper summaryJobMapper;
+    private final AccessControlService accessControl;
 
     // Configuration constants
     private static final int JOB_CLEANUP_DAYS = 7;
@@ -56,6 +58,16 @@ public class SummaryService {
     // the request fails with 500. Mapping here happens inside the transaction.
     // The DTOs also carry articleId, which neither entity exposes and which
     // the summarization worker reads in order to fetch article content.
+    //
+    // Ownership is enforced here too, for the routes that address a summary
+    // or job by an opaque id, because the owner is only known once the row is
+    // loaded. Policy: a resource the caller may not access does not exist for
+    // them, so a foreign id is reported as not found exactly like a missing
+    // one and the id space is not an existence oracle. Shared resources
+    // (user == null) are readable by any authenticated user; mutating one
+    // (regenerate, retry) is reserved for the worker and admins. The entity
+    // methods below stay unchecked because the scheduled sweeps call them
+    // with no principal.
 
     @Transactional
     public SummaryJobResponseDto requestSummaryAsDto(
@@ -69,12 +81,16 @@ public class SummaryService {
 
     @Transactional
     public SummaryJobResponseDto regenerateSummaryAsDto(Long summaryId) {
+        Summary summary = getSummaryById(summaryId);
+        requireMutable(summary.getUser(), () -> new SummaryNotFoundException(summaryId));
         return summaryJobMapper.toDto(regenerateSummary(summaryId));
     }
 
     @Transactional(readOnly = true)
     public SummaryJobResponseDto getJobByIdAsDto(Long jobId) {
-        return summaryJobMapper.toDto(getJobById(jobId));
+        SummaryJob job = getJobById(jobId);
+        requireReadable(job.getUser(), () -> new SummaryJobNotFoundException(jobId));
+        return summaryJobMapper.toDto(job);
     }
 
     @Transactional(readOnly = true)
@@ -84,6 +100,8 @@ public class SummaryService {
 
     @Transactional
     public SummaryJobResponseDto retryFailedJobAsDto(Long jobId) {
+        SummaryJob job = getJobById(jobId);
+        requireMutable(job.getUser(), () -> new SummaryJobNotFoundException(jobId));
         return summaryJobMapper.toDto(retryFailedJob(jobId));
     }
 
@@ -101,17 +119,52 @@ public class SummaryService {
 
     @Transactional(readOnly = true)
     public SummaryResponseDto getSummaryByIdAsDto(Long summaryId) {
-        return summaryMapper.toDto(getSummaryById(summaryId));
+        Summary summary = getSummaryById(summaryId);
+        requireReadable(summary.getUser(), () -> new SummaryNotFoundException(summaryId));
+        return summaryMapper.toDto(summary);
     }
 
+    /**
+     * Every summary of the article the caller may read: the shared ones plus
+     * their own, or all of them for an admin.
+     */
     @Transactional(readOnly = true)
     public List<SummaryResponseDto> getArticleSummariesAsDtos(Long articleId) {
-        return summaryMapper.toDtoList(getArticleSummaries(articleId));
+        List<Summary> visible = getArticleSummaries(articleId).stream()
+                .filter(summary -> accessControl.canActFor(ownerId(summary.getUser())))
+                .toList();
+        return summaryMapper.toDtoList(visible);
     }
 
     @Transactional(readOnly = true)
     public Page<SummaryResponseDto> getUserSummariesAsDtos(Long userId, Pageable pageable) {
         return getUserSummaries(userId, pageable).map(summaryMapper::toDto);
+    }
+
+    private static Long ownerId(User owner) {
+        return owner == null ? null : owner.getId();
+    }
+
+    /** Reading: a foreign resource is reported as missing. */
+    private void requireReadable(User owner, Supplier<? extends RuntimeException> notFound) {
+        if (!accessControl.canActFor(ownerId(owner))) {
+            throw notFound.get();
+        }
+    }
+
+    /**
+     * Mutating: a foreign resource is reported as missing; a shared one needs
+     * the worker or an admin, and that refusal may be an ordinary 403 since
+     * shared resources are readable by everyone anyway.
+     */
+    private void requireMutable(User owner, Supplier<? extends RuntimeException> notFound) {
+        if (owner == null) {
+            accessControl.requireWorker();
+            return;
+        }
+        if (!accessControl.canActFor(owner.getId())) {
+            throw notFound.get();
+        }
     }
 
 

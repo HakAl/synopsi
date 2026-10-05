@@ -9,6 +9,7 @@ import com.study.synopsi.dto.UserPreferenceDto;
 import com.study.synopsi.dto.UserTopicInterestDto;
 import com.study.synopsi.exception.UserNotFoundException;
 import com.study.synopsi.service.AuthService;
+import com.study.synopsi.service.AccessControlService;
 import com.study.synopsi.service.PersonalizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,9 @@ class PersonalizationControllerTest {
 
     @MockBean
     private AuthenticationManager authenticationManager;
+
+    @MockBean
+    private AccessControlService accessControl;
 
     @Test
     void getPersonalizedFeed_shouldReturnPaginatedArticles() throws Exception {

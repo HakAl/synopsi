@@ -70,12 +70,23 @@ Requires `.env` file with:
 The API creates this account on startup when it is started with the matching
 `SYNOPSI_WORKER_USERNAME` and `SYNOPSI_WORKER_PASSWORD` environment variables
 (docker-compose and the Kubernetes manifests already wire these). For a bare
-`./gradlew bootRun`, either export those two variables before starting the API
-or register the account once via `POST /api/v1/auth/register`.
+`./gradlew bootRun`, export those two variables before starting the API. The
+seeded account has the `WORKER` role, which the summarization worker's routes
+(the queued-job list and the completion and failure callbacks) require; an
+account created through `POST /api/v1/auth/register` is an ordinary `USER`
+and is refused there.
 
-Seeding only creates a missing account. If you rotate the worker password in
-the environment, the stored password is not updated: change it through the
-API (or reset the database) and update the workers' `API_PASSWORD` to match.
+Seeding creates a missing account. An existing `USER` account with the
+configured username (one seeded by an earlier version, which created it as
+`USER`) is promoted to `WORKER` on the next API start only if
+`SYNOPSI_WORKER_PASSWORD` verifies against its stored password; that is what
+proves it is the worker's account and not an unrelated registration with the
+same name. On a mismatch, or if the account is an `ADMIN` or `MODERATOR`, the
+API refuses to start and leaves the account untouched: choose another worker
+username or reconcile the password through the API. If you rotate the worker
+password in the environment, the stored password of an existing `WORKER`
+account is not updated: change it through the API (or reset the database) and
+update the workers' `API_PASSWORD` to match.
 
 ### Summarization Worker
 

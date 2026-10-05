@@ -1,5 +1,6 @@
 package com.study.synopsi.exception;
 
+import com.study.synopsi.service.AccessControlService;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -12,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -102,6 +105,29 @@ class GlobalExceptionHandlerTest {
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(handler.handleLocked(new LockedException("x")).getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @DisplayName("Access denied is 403 with a fixed message that does not echo the exception")
+    void accessDeniedIs403() {
+        ResponseEntity<GlobalExceptionHandler.ErrorResponse> response =
+                handler.handleAccessDenied(new AccessDeniedException("user 7 tried user 9"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().status()).isEqualTo(403);
+        assertThat(response.getBody().message())
+                .isEqualTo(AccessControlService.FORBIDDEN_MESSAGE)
+                .doesNotContain("user 7");
+    }
+
+    @Test
+    @DisplayName("Missing credentials is 401")
+    void missingCredentialsIs401() {
+        ResponseEntity<GlobalExceptionHandler.ErrorResponse> response =
+                handler.handleMissingCredentials(new AuthenticationCredentialsNotFoundException("none"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().message()).isEqualTo("Authentication required. Please login.");
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.study.synopsi.controller;
 
 import com.study.synopsi.dto.*;
+import com.study.synopsi.service.AccessControlService;
 import com.study.synopsi.service.PersonalizationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.util.List;
 public class PersonalizationController {
 
     private final PersonalizationService personalizationService;
+    private final AccessControlService accessControl;
 
     /**
      * GET /api/v1/personalization/feed/{userId}
@@ -36,6 +38,7 @@ public class PersonalizationController {
         log.info("GET /api/v1/personalization/feed/{} - page: {}, size: {}", 
                 userId, pageable.getPageNumber(), pageable.getPageSize());
         
+        accessControl.requireSelfOrAdmin(userId);
         Page<PersonalizedArticleDto> feed = personalizationService.getPersonalizedArticles(userId, pageable);
         return ResponseEntity.ok(feed);
     }
@@ -52,6 +55,7 @@ public class PersonalizationController {
         log.info("POST /api/v1/personalization/interactions/{}/read - article: {}", 
                 userId, interaction.getArticleId());
         
+        accessControl.requireSelfOrAdmin(userId);
         personalizationService.recordReadingInteraction(userId, interaction);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -68,6 +72,7 @@ public class PersonalizationController {
         log.info("POST /api/v1/personalization/interactions/{}/feedback - article: {}, type: {}", 
                 userId, interaction.getArticleId(), interaction.getFeedbackType());
         
+        accessControl.requireSelfOrAdmin(userId);
         personalizationService.recordFeedback(userId, interaction);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -80,6 +85,7 @@ public class PersonalizationController {
     public ResponseEntity<List<UserPreferenceDto>> getUserPreferences(@PathVariable Long userId) {
         log.info("GET /api/v1/personalization/preferences/{}", userId);
         
+        accessControl.requireSelfOrAdmin(userId);
         List<UserPreferenceDto> preferences = personalizationService.getUserPreferences(userId);
         return ResponseEntity.ok(preferences);
     }
@@ -96,6 +102,7 @@ public class PersonalizationController {
         log.info("PUT /api/v1/personalization/preferences/{} - topic: {}", 
                 userId, preferenceDto.getTopicId());
         
+        accessControl.requireSelfOrAdmin(userId);
         UserPreferenceDto updated = personalizationService.updateUserPreference(userId, preferenceDto);
         return ResponseEntity.ok(updated);
     }
@@ -108,6 +115,7 @@ public class PersonalizationController {
     public ResponseEntity<List<UserTopicInterestDto>> getInferredInterests(@PathVariable Long userId) {
         log.info("GET /api/v1/personalization/interests/{}", userId);
         
+        accessControl.requireSelfOrAdmin(userId);
         List<UserTopicInterestDto> interests = personalizationService.getInferredInterests(userId);
         return ResponseEntity.ok(interests);
     }
@@ -125,6 +133,7 @@ public class PersonalizationController {
         log.info("GET /api/v1/personalization/similar/{}/{} - limit: {}", 
                 userId, articleId, limit);
         
+        accessControl.requireSelfOrAdmin(userId);
         List<PersonalizedArticleDto> similar = personalizationService
                 .getSimilarArticles(userId, articleId, limit);
         return ResponseEntity.ok(similar);

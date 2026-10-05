@@ -53,6 +53,7 @@ class WorkerAccountSeedServiceIntegrationTest {
         assertThat(passwordEncoder.matches("seeded-worker-pass", worker.getPassword()))
                 .as("stored password must be the encoded configured password")
                 .isTrue();
+        assertThat(worker.getRole()).isEqualTo(User.UserRole.WORKER);
         assertThat(worker.getEnabled()).isTrue();
         assertThat(worker.getAccountLocked()).isFalse();
     }

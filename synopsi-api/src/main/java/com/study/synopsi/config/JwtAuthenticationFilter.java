@@ -48,6 +48,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                     if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                        // The account is reloaded on every request, so a token issued
+                        // before the account was disabled, locked or soft-deleted must
+                        // stop working here. Password login already refuses these
+                        // states; an already-issued token must not outlive them.
+                        if (!userDetails.isEnabled()) {
+                            log.warn("Rejected token for disabled account '{}'", username);
+                            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
+                                    "Account is disabled.", request.getRequestURI());
+                            return;
+                        }
+                        if (!userDetails.isAccountNonLocked()) {
+                            log.warn("Rejected token for locked account '{}'", username);
+                            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
+                                    "Account is locked.", request.getRequestURI());
+                            return;
+                        }
                         UsernamePasswordAuthenticationToken authToken =
                                 new UsernamePasswordAuthenticationToken(
                                         userDetails,

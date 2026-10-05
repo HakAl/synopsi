@@ -9,6 +9,7 @@ import com.study.synopsi.dto.UserResponseDto;
 import com.study.synopsi.exception.InvalidRequestException;
 import com.study.synopsi.exception.UserNotFoundException;
 import com.study.synopsi.service.AuthService;
+import com.study.synopsi.service.AccessControlService;
 import com.study.synopsi.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -26,6 +28,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -54,6 +58,9 @@ class UserControllerTest {
 
     @MockBean
     private AuthenticationManager authenticationManager;
+
+    @MockBean
+    private AccessControlService accessControl;
 
     private UserRequestDto userRequestDto;
     private UserResponseDto userResponseDto;
@@ -196,5 +203,21 @@ class UserControllerTest {
                 .andDo(print())
                 .andExpect(jsonPath("$.status", is(500)))
                 .andExpect(jsonPath("$.message", is("An unexpected error occurred")));
+    }
+
+    @Test
+    void deleteUser_whenNotOwner_shouldReturnForbiddenWithoutCallingService() throws Exception {
+        // The ownership check runs before the service, so a denied caller does
+        // no work and learns nothing about whether the target exists.
+        Long userId = 2L;
+        doThrow(new AccessDeniedException(AccessControlService.FORBIDDEN_MESSAGE))
+                .when(accessControl).requireSelfOrAdmin(userId);
+
+        ResultActions response = mockMvc.perform(delete("/api/v1/users/{id}", userId));
+
+        response.andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status", is(403)))
+                .andExpect(jsonPath("$.message", is(AccessControlService.FORBIDDEN_MESSAGE)));
+        verify(userService, never()).deleteUser(any());
     }
 }

@@ -85,7 +85,9 @@ public class User {
     public enum UserRole {
         USER,
         ADMIN,
-        MODERATOR
+        MODERATOR,
+        /** The seeded service account the ingestion and summarization workers use. */
+        WORKER
     }
 
     // Helper methods for managing relationships

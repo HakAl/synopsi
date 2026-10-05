@@ -2,6 +2,7 @@ package com.study.synopsi.controller;
 
 import com.study.synopsi.dto.*;
 import com.study.synopsi.model.User;
+import com.study.synopsi.service.AccessControlService;
 import com.study.synopsi.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final AccessControlService accessControl;
 
     /**
      * POST /api/v1/users
@@ -31,6 +33,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody UserRequestDto request) {
         log.info("POST /api/v1/users - Creating user with username: {}", request.getUsername());
+        accessControl.requireAdmin();
         UserResponseDto response = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -42,6 +45,7 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
         log.info("GET /api/v1/users/{}", id);
+        accessControl.requireSelfOrAdmin(id);
         UserResponseDto response = userService.getUserById(id);
         return ResponseEntity.ok(response);
     }
@@ -53,6 +57,7 @@ public class UserController {
     @GetMapping("/{id}/stats")
     public ResponseEntity<UserResponseDto> getUserWithStats(@PathVariable Long id) {
         log.info("GET /api/v1/users/{}/stats", id);
+        accessControl.requireSelfOrAdmin(id);
         UserResponseDto response = userService.getUserWithStats(id);
         return ResponseEntity.ok(response);
     }
@@ -68,6 +73,7 @@ public class UserController {
         
         log.info("GET /api/v1/users - page: {}, size: {}", 
                 pageable.getPageNumber(), pageable.getPageSize());
+        accessControl.requireAdmin();
         
         Page<UserResponseDto> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(users);
@@ -80,6 +86,7 @@ public class UserController {
     @GetMapping("/search")
     public ResponseEntity<List<UserResponseDto>> searchUsers(@RequestParam String term) {
         log.info("GET /api/v1/users/search?term={}", term);
+        accessControl.requireAdmin();
         List<UserResponseDto> users = userService.searchUsers(term);
         return ResponseEntity.ok(users);
     }
@@ -91,6 +98,7 @@ public class UserController {
     @GetMapping("/email/{email}")
     public ResponseEntity<UserResponseDto> getUserByEmail(@PathVariable String email) {
         log.info("GET /api/v1/users/email/{}", email);
+        accessControl.requireAdmin();
         UserResponseDto response = userService.getUserByEmail(email);
         return ResponseEntity.ok(response);
     }
@@ -102,6 +110,7 @@ public class UserController {
     @GetMapping("/username/{username}")
     public ResponseEntity<UserResponseDto> getUserByUsername(@PathVariable String username) {
         log.info("GET /api/v1/users/username/{}", username);
+        accessControl.requireAdmin();
         UserResponseDto response = userService.getUserByUsername(username);
         return ResponseEntity.ok(response);
     }
@@ -113,6 +122,7 @@ public class UserController {
     @GetMapping("/enabled")
     public ResponseEntity<List<UserResponseDto>> getEnabledUsers() {
         log.info("GET /api/v1/users/enabled");
+        accessControl.requireAdmin();
         List<UserResponseDto> users = userService.getEnabledUsers();
         return ResponseEntity.ok(users);
     }
@@ -124,6 +134,7 @@ public class UserController {
     @GetMapping("/role/{role}")
     public ResponseEntity<List<UserResponseDto>> getUsersByRole(@PathVariable User.UserRole role) {
         log.info("GET /api/v1/users/role/{}", role);
+        accessControl.requireAdmin();
         List<UserResponseDto> users = userService.getUsersByRole(role);
         return ResponseEntity.ok(users);
     }
@@ -135,6 +146,7 @@ public class UserController {
     @GetMapping("/count/active")
     public ResponseEntity<Long> getActiveUserCount() {
         log.info("GET /api/v1/users/count/active");
+        accessControl.requireAdmin();
         long count = userService.getActiveUserCount();
         return ResponseEntity.ok(count);
     }
@@ -149,6 +161,7 @@ public class UserController {
             @Valid @RequestBody UserUpdateDto updateDto) {
         
         log.info("PUT /api/v1/users/{}", id);
+        accessControl.requireSelfOrAdmin(id);
         UserResponseDto response = userService.updateUser(id, updateDto);
         return ResponseEntity.ok(response);
     }
@@ -163,6 +176,7 @@ public class UserController {
             @Valid @RequestBody PasswordChangeDto passwordChangeDto) {
         
         log.info("PUT /api/v1/users/{}/password", id);
+        accessControl.requireSelfOrAdmin(id);
         userService.changePassword(id, passwordChangeDto);
         return ResponseEntity.noContent().build();
     }
@@ -174,6 +188,7 @@ public class UserController {
     @PutMapping("/{id}/enable")
     public ResponseEntity<Void> enableUser(@PathVariable Long id) {
         log.info("PUT /api/v1/users/{}/enable", id);
+        accessControl.requireAdmin();
         userService.enableUser(id);
         return ResponseEntity.noContent().build();
     }
@@ -185,6 +200,7 @@ public class UserController {
     @PutMapping("/{id}/disable")
     public ResponseEntity<Void> disableUser(@PathVariable Long id) {
         log.info("PUT /api/v1/users/{}/disable", id);
+        accessControl.requireAdmin();
         userService.disableUser(id);
         return ResponseEntity.noContent().build();
     }
@@ -196,6 +212,7 @@ public class UserController {
     @PutMapping("/{id}/lock")
     public ResponseEntity<Void> lockUser(@PathVariable Long id) {
         log.info("PUT /api/v1/users/{}/lock", id);
+        accessControl.requireAdmin();
         userService.lockUser(id);
         return ResponseEntity.noContent().build();
     }
@@ -207,6 +224,7 @@ public class UserController {
     @PutMapping("/{id}/unlock")
     public ResponseEntity<Void> unlockUser(@PathVariable Long id) {
         log.info("PUT /api/v1/users/{}/unlock", id);
+        accessControl.requireAdmin();
         userService.unlockUser(id);
         return ResponseEntity.noContent().build();
     }
@@ -218,6 +236,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         log.info("DELETE /api/v1/users/{}", id);
+        accessControl.requireSelfOrAdmin(id);
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
@@ -229,6 +248,7 @@ public class UserController {
     @GetMapping("/{id}/preferences")
     public ResponseEntity<List<UserPreferenceDto>> getUserPreferences(@PathVariable Long id) {
         log.info("GET /api/v1/users/{}/preferences", id);
+        accessControl.requireSelfOrAdmin(id);
         List<UserPreferenceDto> preferences = userService.getUserPreferences(id);
         return ResponseEntity.ok(preferences);
     }

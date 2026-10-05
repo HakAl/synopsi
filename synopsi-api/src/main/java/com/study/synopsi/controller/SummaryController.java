@@ -4,6 +4,7 @@ import com.study.synopsi.dto.SummaryJobResponseDto;
 import com.study.synopsi.dto.SummaryResponseDto;
 import com.study.synopsi.model.Summary;
 import com.study.synopsi.model.SummaryJob;
+import com.study.synopsi.service.AccessControlService;
 import com.study.synopsi.service.SummaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,7 @@ import java.util.Optional;
 public class SummaryController {
 
     private final SummaryService summaryService;
+    private final AccessControlService accessControl;
 
     /**
      * Request a new summary for an article
@@ -33,6 +35,7 @@ public class SummaryController {
             @RequestParam(defaultValue = "BRIEF") Summary.SummaryType summaryType,
             @RequestParam(defaultValue = "MEDIUM") Summary.SummaryLength summaryLength) {
 
+        accessControl.requireSelfOrAdminIfPresent(userId);
         SummaryJobResponseDto job =
                 summaryService.requestSummaryAsDto(articleId, userId, summaryType, summaryLength);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(job);
@@ -48,6 +51,7 @@ public class SummaryController {
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "BRIEF") Summary.SummaryType summaryType) {
 
+        accessControl.requireSelfOrAdminIfPresent(userId);
         Optional<SummaryResponseDto> summary =
                 summaryService.getSummaryAsDto(articleId, userId, summaryType);
         return summary
@@ -100,6 +104,7 @@ public class SummaryController {
             @PathVariable Long userId,
             Pageable pageable) {
 
+        accessControl.requireSelfOrAdmin(userId);
         Page<SummaryResponseDto> summaries = summaryService.getUserSummariesAsDtos(userId, pageable);
         return ResponseEntity.ok(summaries);
     }
@@ -130,6 +135,7 @@ public class SummaryController {
      */
     @GetMapping("/jobs/queued")
     public ResponseEntity<List<SummaryJobResponseDto>> getQueuedJobs() {
+        accessControl.requireWorker();
         List<SummaryJobResponseDto> jobs = summaryService.getQueuedJobsAsDtos();
         return ResponseEntity.ok(jobs);
     }
@@ -150,6 +156,7 @@ public class SummaryController {
      */
     @GetMapping("/jobs/statistics")
     public ResponseEntity<SummaryService.JobStatistics> getJobStatistics() {
+        accessControl.requireWorker();
         SummaryService.JobStatistics stats = summaryService.getJobStatistics();
         return ResponseEntity.ok(stats);
     }
@@ -164,6 +171,7 @@ public class SummaryController {
             @RequestParam(required = false) Long userId,
             @RequestParam Summary.SummaryType summaryType) {
 
+        accessControl.requireSelfOrAdminIfPresent(userId);
         boolean exists = summaryService.summaryExists(articleId, userId, summaryType);
         return ResponseEntity.ok(exists);
     }
@@ -179,6 +187,7 @@ public class SummaryController {
             @RequestParam String modelVersion,
             @RequestParam(required = false) Integer tokenCount) {
 
+        accessControl.requireWorker();
         summaryService.handleWorkerCallback(jobId, summaryText, modelVersion, tokenCount);
         return ResponseEntity.ok().build();
     }
@@ -192,6 +201,7 @@ public class SummaryController {
             @RequestParam Long jobId,
             @RequestParam String errorMessage) {
 
+        accessControl.requireWorker();
         summaryService.handleWorkerFailure(jobId, errorMessage);
         return ResponseEntity.ok().build();
     }

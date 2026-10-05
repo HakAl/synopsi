@@ -40,6 +40,8 @@ class SummaryServiceTest {
     private ArticleRepository articleRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private AccessControlService accessControl;
 
     @InjectMocks
     private SummaryService summaryService;

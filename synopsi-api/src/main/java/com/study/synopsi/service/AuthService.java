@@ -1,5 +1,6 @@
 package com.study.synopsi.service;
 
+import com.study.synopsi.config.AuthenticatedUser;
 import com.study.synopsi.config.JwtUtil;
 import com.study.synopsi.dto.*;
 import com.study.synopsi.exception.InvalidRequestException;
@@ -22,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.UUID;
 
 @Service
@@ -189,14 +189,6 @@ public class AuthService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(),
-                user.getEnabled(),
-                true, // accountNonExpired
-                true, // credentialsNonExpired
-                !user.getAccountLocked(), // accountNonLocked
-                new ArrayList<>() // authorities (empty since no roles)
-        );
+        return new AuthenticatedUser(user);
     }
 }

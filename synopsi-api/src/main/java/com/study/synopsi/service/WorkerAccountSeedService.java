@@ -10,6 +10,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 /**
  * Seeds the service account the ingestion and summarization workers log in
  * with. The workers receive their credentials from the environment
@@ -18,9 +20,17 @@ import org.springframework.stereotype.Service;
  *
  * Nothing is seeded unless both {@code synopsi.worker.username} and
  * {@code synopsi.worker.password} are set, so no default credential ships
- * with the application. An existing account with the same username is left
- * untouched, including its password: rotating the configured password does
- * not update an account that already exists.
+ * with the application. An existing WORKER account with the same username is
+ * left untouched, including its password, so rotating the configured password
+ * does not update an account that already exists.
+ *
+ * Accounts seeded by earlier versions were created as USER, and the worker
+ * routes are now reserved for WORKER. Such an account is promoted on startup
+ * only when the configured password verifies against its stored hash, which
+ * is what establishes that it is the service account and not an unrelated
+ * registration that happens to use the same name (registration is public and
+ * lets the caller pick any free username). A password mismatch, or any role
+ * other than USER, fails startup without modifying the row.
  *
  * The single save runs in its own transaction. If another instance seeds the
  * same account first (multi-replica startup against a shared database), the
@@ -58,14 +68,16 @@ public class WorkerAccountSeedService implements ApplicationRunner {
     }
 
     /**
-     * Creates the worker account if it is configured and does not already exist.
+     * Creates the worker account if it is configured and does not already
+     * exist, or promotes an existing account of that name to WORKER.
      *
      * @return true if an account was created
      */
     public boolean seedWorkerAccount() {
         if (username.isBlank() || password.isEmpty()) {
             log.info("No worker account configured (synopsi.worker.username / synopsi.worker.password). "
-                    + "Workers must use an account registered through /api/v1/auth/register.");
+                    + "Set both to provision the WORKER account; a self-registered account is an "
+                    + "ordinary USER and cannot use the summarization worker routes.");
             return false;
         }
 
@@ -74,8 +86,9 @@ public class WorkerAccountSeedService implements ApplicationRunner {
                     + "'). Workers send API_USERNAME verbatim, so this account could never log in.");
         }
 
-        if (userRepository.existsByUsername(username)) {
-            log.info("Worker account '{}' already exists. Skipping seed.", username);
+        Optional<User> existing = userRepository.findByUsername(username);
+        if (existing.isPresent()) {
+            reconcileExistingAccount(existing.get());
             return false;
         }
 
@@ -91,21 +104,64 @@ public class WorkerAccountSeedService implements ApplicationRunner {
         worker.setPassword(passwordEncoder.encode(password));
         worker.setFirstName("Synopsi");
         worker.setLastName("Worker");
-        worker.setRole(User.UserRole.USER);
+        worker.setRole(User.UserRole.WORKER);
         worker.setEnabled(true);
         worker.setAccountLocked(false);
 
         try {
             userRepository.save(worker);
         } catch (DataIntegrityViolationException e) {
-            if (userRepository.existsByUsername(username)) {
-                log.info("Worker account '{}' was created concurrently by another instance. Skipping seed.", username);
-                return false;
+            Optional<User> winner = userRepository.findByUsername(username);
+            if (winner.isEmpty()) {
+                throw new IllegalStateException("Failed to seed worker account '" + username
+                        + "' and no account with that username exists", e);
             }
-            throw new IllegalStateException("Failed to seed worker account '" + username
-                    + "' and no account with that username exists", e);
+            // Another instance seeding the same configuration produces the same
+            // identity; anything else that won the race is a collision.
+            if (!isServiceAccount(winner.get())) {
+                throw new IllegalStateException("Worker account '" + username + "' was created concurrently "
+                        + "but is not the configured worker identity (role " + winner.get().getRole()
+                        + ", password mismatch or wrong role). Refusing to continue.", e);
+            }
+            log.info("Worker account '{}' was created concurrently by another instance. Skipping seed.", username);
+            return false;
         }
         log.info("Seeded worker account '{}'", username);
         return true;
+    }
+
+    /**
+     * An account with the configured username already exists. It is left alone
+     * when it is already the WORKER; a legacy USER is promoted only after the
+     * configured password verifies against its stored hash; anything else is a
+     * collision with an unrelated account and fails startup without a write.
+     */
+    private void reconcileExistingAccount(User account) {
+        User.UserRole role = account.getRole();
+        if (role == User.UserRole.WORKER) {
+            log.info("Worker account '{}' already exists. Skipping seed.", username);
+            return;
+        }
+        boolean passwordMatches = passwordEncoder.matches(password, account.getPassword());
+        if (role == User.UserRole.USER && passwordMatches) {
+            account.setRole(User.UserRole.WORKER);
+            userRepository.save(account);
+            log.info("Promoted existing worker account '{}' from role USER to WORKER", username);
+            return;
+        }
+        if (!passwordMatches) {
+            throw new IllegalStateException("An account named '" + username + "' (role " + role
+                    + ") already exists and the configured synopsi.worker.password does not match its "
+                    + "password. It is not the worker's account, or the password was rotated: choose "
+                    + "another worker username, or reconcile the password through the API. The account "
+                    + "was not modified.");
+        }
+        throw new IllegalStateException("An account named '" + username + "' already exists with role "
+                + role + ". Only a USER account is promoted to WORKER. The account was not modified.");
+    }
+
+    private boolean isServiceAccount(User account) {
+        return account.getRole() == User.UserRole.WORKER
+                && passwordEncoder.matches(password, account.getPassword());
     }
 }
